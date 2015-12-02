@@ -92,8 +92,19 @@ def grid_cluster(gifts, res):
 
 
 def trips_in_cluster(gifts, res):
+    """
+    Use close trips in each cell
+    """
+    cur_trip = 0
+    counter = 0
     grid_lat = np.arange(-90, 90, res)
     grid_lon = np.arange(-180, 180, res)
+    for lat in grid_lat:
+        for lon in grid_lon:
+            gifts_clust = gifts[gifts['cluster_lat'] == lat]
+            gifts_clust = gifts_clust[gifts['cluster_lon'] == lon]
+            print 'For cluster with latitude %d and longitude %d There are %d gifts weighing %f' \
+                  % (lat, lon, gifts_clust.shape[0], np.sum(gifts_clust['Weight']))
     return 1
 
 """
@@ -102,16 +113,21 @@ Start Main program
 # GiftId   Latitude   Longitude     Weight  Trip  cluster_lat  cluster_lon
 gifts = pd.read_csv('gifts.csv')
 
+n_gifts = gifts.shape[0]
+resolution = 10
 # add trip column
-trip = pd.DataFrame(np.zeros((gifts.shape[0], 1)))
+trip = pd.DataFrame(np.zeros((n_gifts, 1)))
 trip.index = gifts.index
 trip.columns = ['Trip']
 gifts = pd.concat([gifts, trip], axis=1)
 
 print 'Add cluster index'
-gifts = grid_cluster(gifts, 5)
+gifts = grid_cluster(gifts, resolution)
 
-print 'There are %d gifts to distribute' % gifts.shape[0]
+print 'There are %d gifts to distribute' % n_gifts
+print 'Starting to plan trips by clusters'
+
+trips_in_cluster(gifts, resolution)
 
 sample_sub = pd.read_csv('sample_submission.csv')
 
