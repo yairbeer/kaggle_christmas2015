@@ -90,12 +90,33 @@ def grid_cluster(gifts, res):
             gifts.at[lat_index, 'cluster_lat'] = lat
     return gifts
 
-# GiftId   Latitude   Longitude     Weight  cluster_lat  cluster_lon
+
+def trips_in_cluster(gifts, res):
+    grid_lat = np.arange(-90, 90, res)
+    grid_lon = np.arange(-180, 180, res)
+    return 1
+
+"""
+Start Main program
+"""
+# GiftId   Latitude   Longitude     Weight  Trip  cluster_lat  cluster_lon
 gifts = pd.read_csv('gifts.csv')
+
+# add trip column
+trip = pd.DataFrame(np.zeros((gifts.shape[0], 1)))
+trip.index = gifts.index
+trip.columns = ['Trip']
+gifts = pd.concat([gifts, trip], axis=1)
+
+print 'Add cluster index'
 gifts = grid_cluster(gifts, 5)
-print gifts.head(n=20)
+
+print 'There are %d gifts to distribute' % gifts.shape[0]
+
 sample_sub = pd.read_csv('sample_submission.csv')
 
 all_trips = sample_sub.merge(gifts, on='GiftId')
 
 print(weighted_reindeer_weariness(all_trips))
+
+# Basecase: 144525525772.0
