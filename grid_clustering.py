@@ -129,7 +129,7 @@ Start Main program
 gifts = pd.read_csv('gifts.csv')
 
 n_gifts = gifts.shape[0]
-resolution = 10
+resolution = 5
 
 print 'Add cluster index'
 gifts = grid_cluster(gifts, resolution)
@@ -143,7 +143,6 @@ gift_trips.columns = ['GiftId', 'TripId']
 print gift_trips
 
 sample_sub = pd.read_csv('sample_submission.csv')
-print sample_sub
 #        GiftId  TripId
 # 0           1       0
 all_trips = sample_sub.merge(gifts, on='GiftId')
@@ -153,9 +152,10 @@ print(weighted_reindeer_weariness(all_trips))
 all_trips = gift_trips.merge(gifts, on='GiftId')
 print(weighted_reindeer_weariness(all_trips))
 
+gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('clustering_without_ordering.csv')
+gift_trips.to_csv('clustering_without_ordering_t2.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
