@@ -96,7 +96,8 @@ def trips_in_cluster(gifts, res):
     Use close trips in each cell
     """
     cur_trip = 0
-    counter = 0
+    cur_weight = 0
+    gift_trips = []
     grid_lat = np.arange(-90, 90, res)
     grid_lon = np.arange(-180, 180, res)
     for lat in grid_lat:
@@ -105,21 +106,30 @@ def trips_in_cluster(gifts, res):
             gifts_clust = gifts_clust[gifts['cluster_lon'] == lon]
             print 'For cluster with latitude %d and longitude %d There are %d gifts weighing %f' \
                   % (lat, lon, gifts_clust.shape[0], np.sum(gifts_clust['Weight']))
-    return 1
+            gifts_clust = np.array(gifts_clust[['GiftId', 'Weight']])
+            for i in range(gifts_clust.shape[0]):
+                if (cur_weight + gifts_clust[i, 1]) < 990:
+                    gift_trips.append([gifts_clust[i, 0], cur_trip])
+                    cur_weight += gifts_clust[i, 1]
+                else:
+                    cur_weight = 0
+                    cur_trip += 1
+                    gift_trips.append([gifts_clust[i, 0], cur_trip])
+                    cur_weight += gifts_clust[i, 1]
+            if gifts_clust.shape[0]:
+                cur_weight = 0
+                cur_trip += 1
+    gift_trips = np.array(gift_trips)
+    return gift_trips
 
 """
 Start Main program
 """
-# GiftId   Latitude   Longitude     Weight  Trip  cluster_lat  cluster_lon
+# GiftId   Latitude   Longitude     Weight  cluster_lat  cluster_lon
 gifts = pd.read_csv('gifts.csv')
 
 n_gifts = gifts.shape[0]
 resolution = 10
-# add trip column
-trip = pd.DataFrame(np.zeros((n_gifts, 1)))
-trip.index = gifts.index
-trip.columns = ['Trip']
-gifts = pd.concat([gifts, trip], axis=1)
 
 print 'Add cluster index'
 gifts = grid_cluster(gifts, resolution)
@@ -127,12 +137,25 @@ gifts = grid_cluster(gifts, resolution)
 print 'There are %d gifts to distribute' % n_gifts
 print 'Starting to plan trips by clusters'
 
-trips_in_cluster(gifts, resolution)
+gift_trips = trips_in_cluster(gifts, resolution)
+gift_trips = pd.DataFrame(gift_trips)
+gift_trips.columns = ['GiftId', 'TripId']
+print gift_trips
 
 sample_sub = pd.read_csv('sample_submission.csv')
-
+print sample_sub
+#        GiftId  TripId
+# 0           1       0
 all_trips = sample_sub.merge(gifts, on='GiftId')
-
 print(weighted_reindeer_weariness(all_trips))
 
+# My 1st solution
+all_trips = gift_trips.merge(gifts, on='GiftId')
+print(weighted_reindeer_weariness(all_trips))
+
+gift_trips.index = gift_trips["GiftId"]
+del gift_trips["GiftId"]
+gift_trips.to_csv('clustering_without_ordering.csv')
+
 # Basecase: 144525525772.0
+# Resolution 10 clustering: 34230724056.0
