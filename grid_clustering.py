@@ -100,8 +100,8 @@ def trips_in_cluster(gifts, res):
     gift_trips = []
     grid_lat = np.arange(-90, 90, res)
     grid_lon = np.arange(-180, 180, res)
-    for lat in grid_lat:
-        for lon in grid_lon:
+    for lon in grid_lon:
+        for lat in grid_lat:
             gifts_clust = gifts[gifts['cluster_lat'] == lat]
             gifts_clust = gifts_clust[gifts['cluster_lon'] == lon]
             print 'For cluster with latitude %d and longitude %d There are %d gifts weighing %f' \
@@ -142,11 +142,11 @@ gift_trips = pd.DataFrame(gift_trips)
 gift_trips.columns = ['GiftId', 'TripId']
 print gift_trips
 
-sample_sub = pd.read_csv('sample_submission.csv')
-#        GiftId  TripId
-# 0           1       0
-all_trips = sample_sub.merge(gifts, on='GiftId')
-print(weighted_reindeer_weariness(all_trips))
+# sample_sub = pd.read_csv('sample_submission.csv')
+# #        GiftId  TripId
+# # 0           1       0
+# all_trips = sample_sub.merge(gifts, on='GiftId')
+# print(weighted_reindeer_weariness(all_trips))
 
 # My 1st solution
 all_trips = gift_trips.merge(gifts, on='GiftId')
