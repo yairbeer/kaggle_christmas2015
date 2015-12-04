@@ -92,7 +92,7 @@ def trips_in_cluster(gifts, res_long):
     """
     cur_trip = 0
     cur_weight = 0
-    gift_trips = []
+    gift_trips = [[]]
     grid_lon = np.arange(-180, 180, res_long)
     for lon in grid_lon:
         # filter
@@ -100,21 +100,22 @@ def trips_in_cluster(gifts, res_long):
         # print 'For cluster with latitude %d and longitude %d There are %d gifts weighing %f' \
         #       % (lat, lon, gifts_clust.shape[0], np.sum(gifts_clust['Weight']))
         gifts_clust = gifts_clust.sort('Latitude', ascending=False)
-        gifts_clust = np.array(gifts_clust[['GiftId', 'Weight']])
-        gifts_clust = np.hstack((gifts_clust, np.zeros((gifts_clust.shape[0], 1))))
+        gifts_clust = np.array(gifts_clust)
         for i in range(gifts_clust.shape[0]):
-            if (cur_weight + gifts_clust[i, 1]) <= 990:
-                gift_trips.append([gifts_clust[i, 0], cur_trip])
-                cur_weight += gifts_clust[i, 1]
+            if (cur_weight + gifts_clust[i, 3]) <= 990:
+                gift_trips[cur_trip].append(list(gifts_clust[i, :]) + [cur_trip])
+                cur_weight += gifts_clust[i, 3]
             else:
+                # print gift_trips[cur_trip]
+                gift_trips[cur_trip] = np.array(gift_trips[cur_trip])
+                # print gift_trips[cur_trip]
                 print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
                 cur_weight = 0
                 cur_trip += 1
-                gift_trips.append([gifts_clust[i, 0], cur_trip])
-                cur_weight += gifts_clust[i, 1]
-        if gifts_clust.shape[0]:
-            cur_weight = 0
-            cur_trip += 1
+                gift_trips.append([])
+                gift_trips[cur_trip].append(list(gifts_clust[i, :]) + [cur_trip])
+                cur_weight += gifts_clust[i, 3]
+    gift_trips = np.vstack(tuple(gift_trips))
     gift_trips = np.array(gift_trips)
     return gift_trips
 
@@ -134,6 +135,7 @@ print 'There are %d gifts to distribute' % n_gifts
 print 'Starting to plan trips by clusters'
 
 gift_trips = trips_in_cluster(gifts, resolution_longitude)
+gift_trips = gift_trips[:, [0, -1]]
 gift_trips = pd.DataFrame(gift_trips)
 gift_trips.columns = ['GiftId', 'TripId']
 print gift_trips
@@ -144,7 +146,7 @@ print(weighted_reindeer_weariness(all_trips))
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('clustering_with_ordering_lat_t2.csv')
+gift_trips.to_csv('clustering_with_ordering_lat_v2.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
