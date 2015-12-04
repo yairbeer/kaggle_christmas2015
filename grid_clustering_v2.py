@@ -4,6 +4,7 @@
 from math import radians, cos, sin, asin, sqrt
 import pandas as pd
 import numpy as np
+import itertools
 
 AVG_EARTH_RADIUS = 6371  # in km
 
@@ -65,16 +66,17 @@ def weighted_sub_trip_length(stops, weights, start, end):
     """
     tuples = [tuple(x) for x in stops.values]
     # adding the last trip back to north pole, with just the sleigh weight
+    tmp_weights = list(weights)
     tuples.append(end)
-    weights.append(sleigh_weight)
+    tmp_weights.append(sleigh_weight)
 
     dist = 0.0
     prev_stop = start
-    prev_weight = sum(weights)
+    prev_weight = sum(tmp_weights)
     for i in range(len(tuples)):
         dist += haversine(tuples[i], prev_stop) * prev_weight
         prev_stop = tuples[i]
-        prev_weight = prev_weight - weights[i]
+        prev_weight = prev_weight - tmp_weights[i]
     return dist
 
 
@@ -86,7 +88,6 @@ def weighted_reindeer_weariness(all_trips):
     for t in uniq_trips:
         this_trip = all_trips[all_trips.TripId == t]
         dist = dist + weighted_trip_length(this_trip[['Latitude', 'Longitude']], this_trip.Weight.tolist())
-
     return dist
 
 
@@ -144,7 +145,7 @@ def trips_in_cluster(gifts, res_long):
     return gift_trips
 
 
-def trips_optimize(gift_trips):
+def trips_optimize(gift_trips, batch_size):
     """
     Use optimized track in each trip
     """
@@ -154,13 +155,49 @@ def trips_optimize(gift_trips):
         cur_trip = gift_trips[gift_trips['TripId'] == trip_i]
         print 'trip %d before optimization has %f weighted reindeer weariness' % \
               (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
+        n_batches = cur_trip.shape[0] / batch_size + 1
+        batch_optimize(cur_trip.iloc[:batch_size], list(cur_trip['Weight']), north_pole,
+                       tuple(cur_trip[['Latitude', 'Longitude']].iloc[batch_size]))
     return gift_trips
 
+
+def batch_optimize(batch_gifts, weights, start, stop):
+    """
+    optimize batch. batch size doesn't include static points
+    """
+
+    batch = list(batch_gifts.index)
+    permutations = list(itertools.permutations(batch))
+    best_metric = weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']], weights, start, stop)
+    best_batch = batch_gifts.copy(deep=True)
+    # print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
+    #                                                           weights, start, stop)
+    for perm in permutations:
+        tmp_gifts = batch_gifts.copy(deep=True)
+        tmp_gifts = tmp_gifts.loc[list(perm)]
+
+        cur_metric = weighted_sub_trip_length(tmp_gifts[['Latitude', 'Longitude']], weights, start, stop)
+        # print perm
+        # print tmp_gifts[['Latitude', 'Longitude']]
+        # print cur_metric
+        if cur_metric < best_metric:
+            best_metric = cur_metric
+            best_batch = tmp_gifts.copy(deep=True)
+
+    # print 'After optimization %f' % weighted_sub_trip_length(best_batch[['Latitude', 'Longitude']],
+    #                                                          weights, start, stop)
+    weariness_gain = weighted_sub_trip_length(best_batch[['Latitude', 'Longitude']],
+                                              weights, start, stop) - \
+                     weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
+                                              weights, start, stop)
+    print 'weariness gain: %f' % weariness_gain
+    return best_batch
 """
 Start Main program
 """
 # GiftId   Latitude   Longitude     Weight  cluster_lon
 gifts = pd.read_csv('gifts.csv')
+# gifts = gifts.iloc[:1000]  # training
 
 # Main parameters
 n_gifts = gifts.shape[0]
@@ -174,7 +211,7 @@ print 'Starting to plan trips by grid clusters'
 gift_trips = trips_in_cluster(gifts, resolution_longitude)
 
 print 'Start in trip optimizing'
-gift_trips = trips_optimize(gift_trips)
+gift_trips = trips_optimize(gift_trips, 5)
 
 print 'Checking total score'
 # all_trips = gift_trips.merge(gifts, on='GiftId')
