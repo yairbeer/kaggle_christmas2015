@@ -150,15 +150,39 @@ def trips_optimize(gift_trips, batch_size):
     Use optimized track in each trip
     """
     trips = gift_trips['TripId'].unique()
+    opt_trip = []
     print gift_trips
     for trip_i in trips:
         cur_trip = gift_trips[gift_trips['TripId'] == trip_i]
+        # print cur_trip
         print 'trip %d before optimization has %f weighted reindeer weariness' % \
               (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
-        n_batches = cur_trip.shape[0] / batch_size + 1
-        batch_optimize(cur_trip.iloc[:batch_size], list(cur_trip['Weight']), north_pole,
-                       tuple(cur_trip[['Latitude', 'Longitude']].iloc[batch_size]))
-    return gift_trips
+        n_batches = cur_trip.shape[0] / batch_size
+        # First Batch
+        opt_trip.append(batch_optimize(cur_trip.iloc[:batch_size - 1], list(cur_trip['Weight']), north_pole,
+                        tuple(cur_trip[['Latitude', 'Longitude']].iloc[batch_size - 1])))
+        opt_trip.append(cur_trip.iloc[[batch_size - 1]])
+        # middle batches
+        for batch in range(1, n_batches):
+            opt_trip.append(batch_optimize(cur_trip.iloc[(batch * batch_size): ((batch + 1) * batch_size - 1)],
+                                           list(cur_trip['Weight'].iloc[(batch * batch_size):]),
+                                           tuple(cur_trip[['Latitude', 'Longitude']].iloc[batch * batch_size - 1]),
+                                           tuple(cur_trip[['Latitude', 'Longitude']].iloc[((batch + 1) *
+                                                                                           batch_size - 1)]))
+                            )
+            opt_trip.append(cur_trip.iloc[[((batch + 1) * batch_size - 1)]])
+        # Last Batch
+        # print cur_trip.shape[0], (n_batches * batch_size)
+        if cur_trip.shape[0] > (n_batches * batch_size):
+            opt_trip.append(batch_optimize(cur_trip.iloc[(n_batches * batch_size):],
+                                           list(cur_trip['Weight'].iloc[n_batches * batch_size:]),
+                                           tuple(cur_trip[['Latitude', 'Longitude']].iloc[(n_batches *
+                                                                                           batch_size - 1)]),
+                                           north_pole)
+                            )
+        # print opt_trip
+    opt_trip = pd.concat(opt_trip)
+    return opt_trip
 
 
 def batch_optimize(batch_gifts, weights, start, stop):
@@ -190,7 +214,8 @@ def batch_optimize(batch_gifts, weights, start, stop):
                                               weights, start, stop) - \
                      weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
                                               weights, start, stop)
-    print 'weariness gain: %f' % weariness_gain
+    if weariness_gain < 0:
+        print 'weariness gain: %f' % weariness_gain
     return best_batch
 """
 Start Main program
@@ -211,6 +236,12 @@ print 'Starting to plan trips by grid clusters'
 gift_trips = trips_in_cluster(gifts, resolution_longitude)
 
 print 'Start in trip optimizing'
+gift_trips = trips_optimize(gift_trips, 3)
+print(weighted_reindeer_weariness(gift_trips))
+
+gift_trips = trips_optimize(gift_trips, 4)
+print(weighted_reindeer_weariness(gift_trips))
+
 gift_trips = trips_optimize(gift_trips, 5)
 
 print 'Checking total score'
@@ -227,7 +258,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('clustering_with_ordering_lat_01_batch_optimization_v2.csv')
+gift_trips.to_csv('clustering_with_ordering_lat_01_03_batch_optimization.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
