@@ -155,8 +155,8 @@ def trips_optimize(gift_trips, batch_size):
     for trip_i in trips:
         cur_trip = gift_trips[gift_trips['TripId'] == trip_i]
         # print cur_trip
-        print 'trip %d before optimization has %f weighted reindeer weariness' % \
-              (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
+        # print 'trip %d before optimization has %f weighted reindeer weariness' % \
+        #       (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
         n_batches = cur_trip.shape[0] / batch_size
         # First Batch
         opt_trip.append(batch_optimize(cur_trip.iloc[:batch_size - 1], list(cur_trip['Weight']), north_pole,
@@ -235,19 +235,17 @@ gifts = grid_cluster(gifts, resolution_longitude)
 print 'Starting to plan trips by grid clusters'
 gift_trips = trips_in_cluster(gifts, resolution_longitude)
 
-print 'Start in trip optimizing'
-gift_trips = trips_optimize(gift_trips, 3)
-print(weighted_reindeer_weariness(gift_trips))
+print 'Start in trip batch optimizing'
+n_iterations = 5
+for i in range(n_iterations):
+    gift_trips = trips_optimize(gift_trips, 3)
+    print(weighted_reindeer_weariness(gift_trips))
 
-gift_trips = trips_optimize(gift_trips, 4)
-print(weighted_reindeer_weariness(gift_trips))
+    gift_trips = trips_optimize(gift_trips, 4)
+    print(weighted_reindeer_weariness(gift_trips))
 
-gift_trips = trips_optimize(gift_trips, 5)
-
-print 'Checking total score'
-# all_trips = gift_trips.merge(gifts, on='GiftId')
-print gift_trips
-print(weighted_reindeer_weariness(gift_trips))
+    gift_trips = trips_optimize(gift_trips, 5)
+    print(weighted_reindeer_weariness(gift_trips))
 
 print 'writing results to file'
 gift_trips = np.array(gift_trips)
@@ -258,7 +256,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('clustering_with_ordering_lat_01_03_batch_optimization.csv')
+gift_trips.to_csv('clustering_with_ordering_lat_01_030405_batch_optimization_5 iter.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
@@ -266,3 +264,8 @@ gift_trips.to_csv('clustering_with_ordering_lat_01_03_batch_optimization.csv')
 # resolution_latitude = 45; resolution_longitude = 1, clustering with ordering by latitude: 13227163205.6
 # resolution_longitude = 0.5, clustering with ordering by latitude: 12787535216.9
 # resolution_longitude = 0.1, clustering with ordering by latitude: 12674006549.1
+# resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3: 12671850614.7
+# resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4: 12669475033.6
+# resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4, 5: 12667518270.7
+# resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4, 5; 5 iterations: 12666394933.7
+
