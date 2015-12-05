@@ -65,9 +65,9 @@ def weighted_sub_trip_length(stops, weights, start, end):
     :return: metric score
     """
     tuples = [tuple(x) for x in stops.values]
-    # adding the last trip back to north pole, with just the sleigh weight
-    tmp_weights = list(weights)
+    # adding the last trip, with just the sleigh weight
     tuples.append(end)
+    tmp_weights = list(weights)
     tmp_weights.append(sleigh_weight)
 
     dist = 0.0
@@ -211,7 +211,8 @@ def trips_optimize_v2(gift_trips, batch_size):
             for batch in range(1, n_batches):
                 single_trip.append(batch_optimize(cur_trip.iloc[(batch * batch_size): ((batch + 1) * batch_size - 1)],
                                                   list(cur_trip['Weight'].iloc[(batch * batch_size):]),
-                                                  tuple(cur_trip[['Latitude', 'Longitude']].iloc[batch * batch_size - 1]),
+                                                  tuple(cur_trip[['Latitude', 'Longitude']].iloc[batch * batch_size -
+                                                                                                 1]),
                                                   tuple(cur_trip[['Latitude', 'Longitude']].iloc[((batch + 1) *
                                                                                                batch_size - 1)]))
                                    )
@@ -231,10 +232,11 @@ def trips_optimize_v2(gift_trips, batch_size):
             print 'middle improve:', cur_improve
             # working from the middle of the  1st batch
             single_trip = [cur_trip.iloc[:(batch_size/2)]]
+            cur_base = tuple(cur_trip[['Latitude', 'Longitude']].iloc[(batch_size/2) - 1])
             cur_trip = cur_trip.iloc[(batch_size/2):]
             n_batches = cur_trip.shape[0] / batch_size
             # First Batch
-            single_trip.append(batch_optimize(cur_trip.iloc[:batch_size - 1], list(cur_trip['Weight']), north_pole,
+            single_trip.append(batch_optimize(cur_trip.iloc[:batch_size - 1], list(cur_trip['Weight']), cur_base,
                                tuple(cur_trip[['Latitude', 'Longitude']].iloc[batch_size - 1])))
             single_trip.append(cur_trip.iloc[[batch_size - 1]])
             # middle batches
@@ -301,7 +303,7 @@ Start Main program
 """
 # GiftId   Latitude   Longitude     Weight  cluster_lon
 gifts = pd.read_csv('gifts.csv')
-# gifts = gifts.iloc[:1000]  # training
+gifts = gifts.iloc[:1000]  # training
 
 # Main parameters
 n_gifts = gifts.shape[0]
