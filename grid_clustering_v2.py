@@ -91,60 +91,6 @@ def weighted_reindeer_weariness(all_trips):
     return dist
 
 
-def grid_cluster(gifts, res_long):
-    print 'grid clustering'
-    grid_lon = np.arange(-180, 180, res_long)
-    gifts = pd.DataFrame(gifts)
-    cluster = pd.DataFrame(np.zeros((gifts.shape[0], 1)))
-    cluster.index = gifts.index
-    cluster.columns = ['cluster_lon']
-    gifts = pd.concat([gifts, cluster], axis=1)
-    for lon in grid_lon:
-        lon_eq = ((np.array(gifts['Longitude']) >= lon) * 1 *
-                  (np.array(gifts['Longitude']) < lon + res_long) * 1).astype('bool')
-        lon_index = gifts[lon_eq].index
-        gifts.at[lon_index, 'cluster_lon'] = lon
-    return gifts
-
-
-def trips_in_cluster(gifts, res_long):
-    """
-    Use sorted in latitude trips in each cell
-    """
-    cur_trip = 0
-    cur_weight = 0
-    gift_trips = [[]]
-    grid_lon = np.arange(-180, 180, res_long)
-    for lon in grid_lon:
-        # filter
-        gifts_clust = gifts[gifts['cluster_lon'] == lon]
-        # print 'For cluster with latitude %d and longitude %d There are %d gifts weighing %f' \
-        #       % (lat, lon, gifts_clust.shape[0], np.sum(gifts_clust['Weight']))
-        gifts_clust = gifts_clust.sort('Latitude', ascending=False)
-        gifts_clust = np.array(gifts_clust)
-        for i in range(gifts_clust.shape[0]):
-            if (cur_weight + gifts_clust[i, 3]) <= 990:
-                gift_trips[cur_trip].append(list(gifts_clust[i, :]) + [cur_trip])
-                cur_weight += gifts_clust[i, 3]
-            else:
-                gift_trips[cur_trip] = pd.DataFrame(gift_trips[cur_trip])
-                gift_trips[cur_trip].columns = ['GiftId', 'Latitude', 'Longitude', 'Weight', 'cluster_lon', 'TripId']
-
-                gift_trips[cur_trip] = gift_trips[cur_trip].sort('Latitude', ascending=False)
-                gift_trips[cur_trip] = np.array(gift_trips[cur_trip])
-                print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
-                cur_weight = 0
-                cur_trip += 1
-                gift_trips.append([])
-                gift_trips[cur_trip].append(list(gifts_clust[i, :]) + [cur_trip])
-                cur_weight += gifts_clust[i, 3]
-    gift_trips = np.array(gift_trips)
-    gift_trips = np.vstack(tuple(gift_trips))
-    gift_trips = pd.DataFrame(gift_trips)
-    gift_trips.columns = ['GiftId', 'Latitude', 'Longitude', 'Weight', 'cluster_lon', 'TripId']
-    return gift_trips
-
-
 def trips_in_cluster_v2(gifts):
     """
     Use sorted in latitude trips in each cell
@@ -157,17 +103,19 @@ def trips_in_cluster_v2(gifts):
     gift_index = list(gifts.index)
     for cur_index in gift_index:
         # add current weight
-        if (cur_weight + gifts['Weight'].loc[cur_index]) <= 990:
-            gifts['TripId'].at[cur_index] = cur_trip
-            cur_weight += gifts['Weight'].loc[cur_index]
-        else:
-            # add last weight
-            # print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
-            cur_weight = 0
-            cur_trip += 1
-            gifts['TripId'].at[cur_index] = cur_trip
-            cur_weight += gifts['Weight'].loc[cur_index]
-
+        if gifts['TripId'].loc[cur_index] == -1:
+            if (cur_weight + gifts['Weight'].loc[cur_index]) <= 990:
+                gifts['TripId'].at[cur_index] = cur_trip
+                cur_weight += gifts['Weight'].loc[cur_index]
+            else:
+                # fill up trip
+                gifts, cur_weight = fill_trip(gifts, cur_weight, cur_trip, gifts.loc[cur_index], 1.0)
+                # add last weight
+                # print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
+                cur_weight = 0
+                cur_trip += 1
+                gifts['TripId'].at[cur_index] = cur_trip
+                cur_weight += gifts['Weight'].loc[cur_index]
     trips = []
     print 'sorting'
     for trip in gifts['TripId'].unique():
@@ -179,11 +127,21 @@ def trips_in_cluster_v2(gifts):
     return gifts
 
 
-def fill_trip(gifts, res_long):
+def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit):
     """
-    Fill trips
+    Fill trips to the top
     """
-    return gifts
+    cur_long = cur_gift['Longitude']
+    relevant_gifts = gifts[gifts['Longitude'] < (cur_long + long_limit)]
+    relevant_gifts = relevant_gifts[gifts['TripId'] < 0]
+    relevant_gifts = relevant_gifts.sort('Latitude', ascending=True)
+    relevant_gifts_index = list(relevant_gifts.index)
+    for cur_index in relevant_gifts_index:
+        # add current weight
+        if (cur_weight + relevant_gifts['Weight'].loc[cur_index]) <= 990:
+            gifts['TripId'].at[cur_index] = cur_trip
+            cur_weight += relevant_gifts['Weight'].loc[cur_index]
+    return gifts, cur_weight
 
 
 def trips_optimize(gift_trips, batch_size):
@@ -235,8 +193,8 @@ def batch_optimize(batch_gifts, weights, start, stop):
     permutations = list(itertools.permutations(batch))
     best_metric = weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']], weights, start, stop)
     best_batch = batch_gifts.copy(deep=True)
-    print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
-                                                              weights, start, stop)
+    # print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
+    #                                                           weights, start, stop)
     for perm in permutations:
         tmp_gifts = batch_gifts.copy(deep=True)
         tmp_gifts = tmp_gifts.loc[list(perm)]
@@ -273,11 +231,11 @@ n_gifts = gifts.shape[0]
 # gifts = grid_cluster(gifts, resolution_longitude)
 
 # print 'There are %d gifts to distribute' % n_gifts
-print 'Starting to plan trips by grid clusters'
+print 'Starting to plan trips by longitude'
 gift_trips = trips_in_cluster_v2(gifts)
 
 print 'Start in trip batch optimizing'
-n_iterations = 5
+n_iterations = 2
 for i in range(n_iterations):
     gift_trips = trips_optimize(gift_trips, 3)
     print(weighted_reindeer_weariness(gift_trips))
@@ -287,7 +245,7 @@ for i in range(n_iterations):
 
     gift_trips = trips_optimize(gift_trips, 5)
     print(weighted_reindeer_weariness(gift_trips))
-
+print gift_trips
 print(weighted_reindeer_weariness(gift_trips))
 
 print 'writing results to file'
@@ -299,7 +257,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('long_lat_ordering_030405_batch_optimization_5_iter.csv')
+gift_trips.to_csv('long_lat_ordering_030405_batch_optimization_2_iter_fillings.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
@@ -312,4 +270,6 @@ gift_trips.to_csv('long_lat_ordering_030405_batch_optimization_5_iter.csv')
 # resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4, 5: 12667518270.7
 # resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4, 5; 5 iterations: 12666394933.7
 
-# V2: no clustering needed
+# V2: longitude ordering
+# ordering by latitude, batch = 3, 4, 5; 2 iterations: 12663733540.7
+# ordering by latitude, batch = 3, 4, 5; 2 iterations, fililing: 12663733540.7
