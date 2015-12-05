@@ -265,18 +265,33 @@ Start Main program
 gifts = pd.read_csv('gifts.csv')
 # gifts = gifts.iloc[:1000]  # training
 
-# Main parameters
-n_gifts = gifts.shape[0]
 
-# print 'There are %d gifts to distribute' % n_gifts
-print 'Starting to plan trips by longitude'
-gift_trips = trips_in_cluster_v2(gifts)
+def solve(gifts):
+    # Main parameters
+    # n_gifts = gifts.shape[0]
+    # print 'There are %d gifts to distribute' % n_gifts
 
-print 'Start in trip batch optimizing'
+    print 'Starting to plan trips by longitude'
+    gift_trips = trips_in_cluster_v2(gifts)
+    print(weighted_reindeer_weariness(gift_trips))
+
+    # print 'Start in trip batch optimizing'
+    gift_trips = trips_optimize_v2(gift_trips, 6)
+    print(weighted_reindeer_weariness(gift_trips))
+    # print gift_trips
+    return gift_trips
+
+gifts_south = gifts[gifts['Latitude'] <= -70]
+gifts_south = solve(gifts_south)
+
+gifts_north_trip_start = gifts_south['TripId'].iloc[-1] + 1
+gifts_north = gifts[gifts['Latitude'] > -70]
+gifts_north = solve(gifts_north)
+gifts_north['TripId'] += gifts_north_trip_start
+
+gift_trips = [gifts_south, gifts_north]
+gift_trips = pd.concat(gift_trips)
 print(weighted_reindeer_weariness(gift_trips))
-gift_trips = trips_optimize_v2(gift_trips, 5)
-print(weighted_reindeer_weariness(gift_trips))
-print gift_trips
 
 print 'writing results to file'
 gift_trips = np.array(gift_trips)
@@ -287,7 +302,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('long_lat_ordering_030405_batch_optimization_iter_v2_fillings.csv')
+gift_trips.to_csv('cluster_north_south.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
@@ -306,4 +321,7 @@ gift_trips.to_csv('long_lat_ordering_030405_batch_optimization_iter_v2_fillings.
 # ordering by latitude, fililing: 12668167971.9
 # ordering by latitude, batch = 5, 6; iterative, fililing: 12663055569.6
 
-
+# V3 Continent clustering
+# cluster north + south before optimization: 12595133701.3
+#  cluster north + south, batch = 5 optimization: 12575675485.4
+#  cluster north + south, batch = 6 optimization:
