@@ -5,6 +5,7 @@ from math import radians, cos, sin, asin, sqrt
 import pandas as pd
 import numpy as np
 import itertools
+from sklearn.cluster import DBSCAN
 
 AVG_EARTH_RADIUS = 6371  # in km
 
@@ -275,17 +276,28 @@ def solve(gifts):
     gift_trips = trips_in_cluster_v2(gifts)
     print(weighted_reindeer_weariness(gift_trips))
 
-    # print 'Start in trip batch optimizing'
-    gift_trips = trips_optimize_v2(gift_trips, 6)
+    print 'Start in trip batch optimizing'
+    gift_trips = trips_optimize_v2(gift_trips, 5)
     print(weighted_reindeer_weariness(gift_trips))
+
     # print gift_trips
     return gift_trips
 
+"""
+clustering
+"""
 gifts_south = gifts[gifts['Latitude'] <= -70]
-gifts_south = solve(gifts_south)
-
-gifts_north_trip_start = gifts_south['TripId'].iloc[-1] + 1
 gifts_north = gifts[gifts['Latitude'] > -70]
+
+gifts_north_clustering = np.array(gifts_north[['Latitude', 'Longitude']])
+db = DBSCAN(eps=10, min_samples=1000).fit(gifts_north_clustering)
+labels = pd.Series(db.labels_)
+print labels.value_counts()
+
+gifts_south = pd.concat([gifts_south, gifts_north.loc[np.array(labels == (-1))]])
+gifts_north = gifts_north.loc[np.array(labels != (-1))]
+gifts_south = solve(gifts_south)
+gifts_north_trip_start = gifts_south['TripId'].iloc[-1] + 1
 gifts_north = solve(gifts_north)
 gifts_north['TripId'] += gifts_north_trip_start
 
@@ -321,7 +333,9 @@ gift_trips.to_csv('cluster_north_south.csv')
 # ordering by latitude, fililing: 12668167971.9
 # ordering by latitude, batch = 5, 6; iterative, fililing: 12663055569.6
 
-# V3 Continent clustering
+# V3 North / South clustering
 # cluster north + south before optimization: 12595133701.3
 #  cluster north + south, batch = 5 optimization: 12575675485.4
 #  cluster north + south, batch = 6 optimization:
+
+# V3.1 continent clustering
