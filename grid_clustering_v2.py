@@ -132,7 +132,7 @@ def trips_in_cluster(gifts, res_long):
 
                 gift_trips[cur_trip] = gift_trips[cur_trip].sort('Latitude', ascending=False)
                 gift_trips[cur_trip] = np.array(gift_trips[cur_trip])
-                # print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
+                print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
                 cur_weight = 0
                 cur_trip += 1
                 gift_trips.append([])
@@ -143,6 +143,47 @@ def trips_in_cluster(gifts, res_long):
     gift_trips = pd.DataFrame(gift_trips)
     gift_trips.columns = ['GiftId', 'Latitude', 'Longitude', 'Weight', 'cluster_lon', 'TripId']
     return gift_trips
+
+
+def trips_in_cluster_v2(gifts):
+    """
+    Use sorted in latitude trips in each cell
+    """
+    cur_trip = 0
+    cur_weight = 0
+    gifts['TripId'] = np.ones((gifts.shape[0], 1)) * (-1)
+
+    gifts = gifts.sort('Longitude', ascending=True)
+    gift_index = list(gifts.index)
+    for cur_index in gift_index:
+        # add current weight
+        if (cur_weight + gifts['Weight'].loc[cur_index]) <= 990:
+            gifts['TripId'].at[cur_index] = cur_trip
+            cur_weight += gifts['Weight'].loc[cur_index]
+        else:
+            # add last weight
+            # print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
+            cur_weight = 0
+            cur_trip += 1
+            gifts['TripId'].at[cur_index] = cur_trip
+            cur_weight += gifts['Weight'].loc[cur_index]
+
+    trips = []
+    print 'sorting'
+    for trip in gifts['TripId'].unique():
+        cur_trip = gifts[gifts['TripId'] == trip]
+        cur_trip = cur_trip.sort('Latitude', ascending=False)
+        trips.append(cur_trip)
+    gifts = pd.concat(trips, axis=0)
+    print gifts
+    return gifts
+
+
+def fill_trip(gifts, res_long):
+    """
+    Fill trips
+    """
+    return gifts
 
 
 def trips_optimize(gift_trips, batch_size):
@@ -194,8 +235,8 @@ def batch_optimize(batch_gifts, weights, start, stop):
     permutations = list(itertools.permutations(batch))
     best_metric = weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']], weights, start, stop)
     best_batch = batch_gifts.copy(deep=True)
-    # print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
-    #                                                           weights, start, stop)
+    print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
+                                                              weights, start, stop)
     for perm in permutations:
         tmp_gifts = batch_gifts.copy(deep=True)
         tmp_gifts = tmp_gifts.loc[list(perm)]
@@ -226,14 +267,14 @@ gifts = pd.read_csv('gifts.csv')
 
 # Main parameters
 n_gifts = gifts.shape[0]
-resolution_longitude = 0.1
-
-print 'Add cluster index'
-gifts = grid_cluster(gifts, resolution_longitude)
+# resolution_longitude = 0.1
+#
+# print 'Add cluster index'
+# gifts = grid_cluster(gifts, resolution_longitude)
 
 # print 'There are %d gifts to distribute' % n_gifts
 print 'Starting to plan trips by grid clusters'
-gift_trips = trips_in_cluster(gifts, resolution_longitude)
+gift_trips = trips_in_cluster_v2(gifts)
 
 print 'Start in trip batch optimizing'
 n_iterations = 5
@@ -247,6 +288,8 @@ for i in range(n_iterations):
     gift_trips = trips_optimize(gift_trips, 5)
     print(weighted_reindeer_weariness(gift_trips))
 
+print(weighted_reindeer_weariness(gift_trips))
+
 print 'writing results to file'
 gift_trips = np.array(gift_trips)
 gift_trips = gift_trips[:, [0, -1]]
@@ -256,7 +299,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('clustering_with_ordering_lat_01_030405_batch_optimization_5 iter.csv')
+gift_trips.to_csv('long_lat_ordering_030405_batch_optimization_5_iter.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
@@ -269,3 +312,4 @@ gift_trips.to_csv('clustering_with_ordering_lat_01_030405_batch_optimization_5 i
 # resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4, 5: 12667518270.7
 # resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4, 5; 5 iterations: 12666394933.7
 
+# V2: no clustering needed
