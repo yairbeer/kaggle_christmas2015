@@ -366,6 +366,7 @@ labels = pd.Series(db.labels_)
 print labels.value_counts()
 
 gifts_south = pd.concat([gifts_south, gifts_north.loc[np.array(labels == (-1))]])
+
 gifts_north = gifts_north.loc[np.array(labels != (-1))]
 gifts_south = solve(gifts_south)
 gifts_north_trip_start = gifts_south['TripId'].iloc[-1] + 1
