@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import itertools
 from sklearn.cluster import DBSCAN
+import matplotlib.pyplot as plt
 
 AVG_EARTH_RADIUS = 6371  # in km
 
@@ -361,9 +362,16 @@ gifts_south = gifts[gifts['Latitude'] <= -70]
 gifts_north = gifts[gifts['Latitude'] > -70]
 
 gifts_north_clustering = np.array(gifts_north[['Latitude', 'Longitude']])
-db = DBSCAN(eps=10, min_samples=1000).fit(gifts_north_clustering)
+db = DBSCAN(eps=8, min_samples=1000).fit(gifts_north_clustering)
 labels = pd.Series(db.labels_)
 print labels.value_counts()
+
+# plot north clusters
+north_groups = [-1, 0, 1, 2, 3]
+for ind in north_groups:
+    plt.plot(np.array(gifts_north['Longitude'].loc[np.array(labels == ind)]),
+             np.array(gifts_north['Latitude'].loc[np.array(labels == ind)]), 'ro')
+    plt.show()
 
 gifts_south = pd.concat([gifts_south, gifts_north.loc[np.array(labels == (-1))]])
 gifts_south = solve(gifts_south)
@@ -371,8 +379,7 @@ gifts_south = solve(gifts_south)
 print gifts_north.loc[np.array(labels == 0)]
 
 gift_trips = gifts_south
-gifts_north = [gifts_north.loc[np.array(labels == 0)], gifts_north.loc[np.array(labels == 1)],
-               gifts_north.loc[np.array(labels == 2)], gifts_north.loc[np.array(labels == 3)]]
+gifts_north = []
 
 for i in range(len(gifts_north)):
     gifts_next_trip_start = gift_trips['TripId'].iloc[-1] + 1
