@@ -409,6 +409,6 @@ gift_trips.to_csv('cluster_north_south_round_trips.csv')
 #  cluster north + south, batch = 5 optimization: 12575675485.4
 #  cluster north + south, batch = 6 optimization:
 
-# V3.1 continent clustering
+# V3.1 continent clustering:
 # cluster north + south, removed DBSCAN outliers to south, batch = 5 optimization: 12537678107.5
 # cluster north + south, removed DBSCAN outliers to south, batch = 6 optimization: 12536291165.9
