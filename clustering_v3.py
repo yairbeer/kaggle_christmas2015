@@ -366,15 +366,17 @@ labels = pd.Series(db.labels_)
 print labels.value_counts()
 
 gifts_south = pd.concat([gifts_south, gifts_north.loc[np.array(labels == (-1))]])
-
-gifts_north = gifts_north.loc[np.array(labels != (-1))]
 gifts_south = solve(gifts_south)
-gifts_north_trip_start = gifts_south['TripId'].iloc[-1] + 1
-gifts_north = solve(gifts_north)
-gifts_north['TripId'] += gifts_north_trip_start
 
-gift_trips = [gifts_south, gifts_north]
-gift_trips = pd.concat(gift_trips)
+gift_trips = gifts_south
+gifts_north = [gifts_north.loc[np.array(labels == 0)], gifts_north.loc[np.array(labels == 1)],
+               gifts_north.loc[np.array(labels == 2)], gifts_north.loc[np.array(labels == 3)]]
+for i in range(len(gifts_north)):
+    gifts_next_trip_start = gift_trips['TripId'].iloc[-1] + 1
+    gifts_next = solve(gifts_north[i])
+    gifts_next['TripId'] += gifts_next_trip_start
+    gift_trips = pd.concat([gift_trips, gifts_next])
+
 print(weighted_reindeer_weariness(gift_trips))
 
 print 'writing results to file'
