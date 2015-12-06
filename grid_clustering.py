@@ -69,56 +69,52 @@ def weighted_reindeer_weariness(all_trips):
     return dist
 
 
-def grid_cluster(gifts, res):
-    grid_lat = np.arange(-90, 90, res)
-    grid_lon = np.arange(-180, 180, res)
+def grid_cluster(gifts, res_long):
+    grid_lon = np.arange(-180, 180, res_long)
     gifts = pd.DataFrame(gifts)
-    cluster = pd.DataFrame(np.zeros((gifts.shape[0], 2)))
+    cluster = pd.DataFrame(np.zeros((gifts.shape[0], 1)))
     cluster.index = gifts.index
-    cluster.columns = ['cluster_lat', 'cluster_lon']
+    cluster.columns = ['cluster_lon']
     gifts = pd.concat([gifts, cluster], axis=1)
-    for lat in grid_lat:
-        print lat
-        for lon in grid_lon:
-            lon_eq = ((np.array(gifts['Longitude']) >= lon) * 1 *
-                      (np.array(gifts['Longitude']) < lon + res) * 1).astype('bool')
-            lon_index = gifts[lon_eq].index
-            gifts.at[lon_index, 'cluster_lon'] = lon
-            lat_eq = ((np.array(gifts['Latitude']) >= lat) * 1 *
-                      (np.array(gifts['Latitude']) < lat + res) * 1).astype('bool')
-            lat_index = gifts[lat_eq].index
-            gifts.at[lat_index, 'cluster_lat'] = lat
+    for lon in grid_lon:
+        if not(lon % 10):
+            print lon
+        lon_eq = ((np.array(gifts['Longitude']) >= lon) * 1 *
+                  (np.array(gifts['Longitude']) < lon + res_long) * 1).astype('bool')
+        lon_index = gifts[lon_eq].index
+        gifts.at[lon_index, 'cluster_lon'] = lon
     return gifts
 
 
-def trips_in_cluster(gifts, res):
+def trips_in_cluster(gifts, res_long):
     """
     Use close trips in each cell
     """
     cur_trip = 0
     cur_weight = 0
     gift_trips = []
-    grid_lat = np.arange(-90, 90, res)
-    grid_lon = np.arange(-180, 180, res)
+    grid_lon = np.arange(-180, 180, res_long)
     for lon in grid_lon:
-        for lat in grid_lat:
-            gifts_clust = gifts[gifts['cluster_lat'] == lat]
-            gifts_clust = gifts_clust[gifts['cluster_lon'] == lon]
-            print 'For cluster with latitude %d and longitude %d There are %d gifts weighing %f' \
-                  % (lat, lon, gifts_clust.shape[0], np.sum(gifts_clust['Weight']))
-            gifts_clust = np.array(gifts_clust[['GiftId', 'Weight']])
-            for i in range(gifts_clust.shape[0]):
-                if (cur_weight + gifts_clust[i, 1]) < 990:
-                    gift_trips.append([gifts_clust[i, 0], cur_trip])
-                    cur_weight += gifts_clust[i, 1]
-                else:
-                    cur_weight = 0
-                    cur_trip += 1
-                    gift_trips.append([gifts_clust[i, 0], cur_trip])
-                    cur_weight += gifts_clust[i, 1]
-            if gifts_clust.shape[0]:
+        # filter
+        gifts_clust = gifts[gifts['cluster_lon'] == lon]
+        # print 'For cluster with latitude %d and longitude %d There are %d gifts weighing %f' \
+        #       % (lat, lon, gifts_clust.shape[0], np.sum(gifts_clust['Weight']))
+        gifts_clust = gifts_clust.sort('Latitude', ascending=False)
+        gifts_clust = np.array(gifts_clust[['GiftId', 'Weight']])
+        gifts_clust = np.hstack((gifts_clust, np.zeros((gifts_clust.shape[0], 1))))
+        for i in range(gifts_clust.shape[0]):
+            if (cur_weight + gifts_clust[i, 1]) <= 990:
+                gift_trips.append([gifts_clust[i, 0], cur_trip])
+                cur_weight += gifts_clust[i, 1]
+            else:
+                print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
                 cur_weight = 0
                 cur_trip += 1
+                gift_trips.append([gifts_clust[i, 0], cur_trip])
+                cur_weight += gifts_clust[i, 1]
+        if gifts_clust.shape[0]:
+            cur_weight = 0
+            cur_trip += 1
     gift_trips = np.array(gift_trips)
     return gift_trips
 
@@ -129,33 +125,29 @@ Start Main program
 gifts = pd.read_csv('gifts.csv')
 
 n_gifts = gifts.shape[0]
-resolution = 5
+resolution_longitude = 0.5
 
 print 'Add cluster index'
-gifts = grid_cluster(gifts, resolution)
+gifts = grid_cluster(gifts, resolution_longitude)
 
 print 'There are %d gifts to distribute' % n_gifts
 print 'Starting to plan trips by clusters'
 
-gift_trips = trips_in_cluster(gifts, resolution)
+gift_trips = trips_in_cluster(gifts, resolution_longitude)
 gift_trips = pd.DataFrame(gift_trips)
 gift_trips.columns = ['GiftId', 'TripId']
 print gift_trips
 
-# sample_sub = pd.read_csv('sample_submission.csv')
-# #        GiftId  TripId
-# # 0           1       0
-# all_trips = sample_sub.merge(gifts, on='GiftId')
-# print(weighted_reindeer_weariness(all_trips))
-
-# My 1st solution
 all_trips = gift_trips.merge(gifts, on='GiftId')
 print(weighted_reindeer_weariness(all_trips))
 
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('clustering_without_ordering_t2.csv')
+gift_trips.to_csv('clustering_with_ordering_lat_t2.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
+# Resolution 5 clustering with ordering by latitude: 17723267396.9
+# resolution_latitude = 45; resolution_longitude = 1, clustering with ordering by latitude: 13227163205.6
+# resolution_longitude = 0.5, clustering with ordering by latitude: 12787535216.9
