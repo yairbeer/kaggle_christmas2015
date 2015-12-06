@@ -348,8 +348,8 @@ def solve(gifts):
     print(weighted_reindeer_weariness(gift_trips))
 
     print 'Start in trip batch optimizing'
-    # gift_trips = trips_optimize_v2(gift_trips, 5)
-    # print(weighted_reindeer_weariness(gift_trips))
+    gift_trips = trips_optimize_v2(gift_trips, 5)
+    print(weighted_reindeer_weariness(gift_trips))
 
     print gift_trips
     return gift_trips
@@ -368,9 +368,12 @@ print labels.value_counts()
 gifts_south = pd.concat([gifts_south, gifts_north.loc[np.array(labels == (-1))]])
 gifts_south = solve(gifts_south)
 
+print gifts_north.loc[np.array(labels == 0)]
+
 gift_trips = gifts_south
 gifts_north = [gifts_north.loc[np.array(labels == 0)], gifts_north.loc[np.array(labels == 1)],
                gifts_north.loc[np.array(labels == 2)], gifts_north.loc[np.array(labels == 3)]]
+
 for i in range(len(gifts_north)):
     gifts_next_trip_start = gift_trips['TripId'].iloc[-1] + 1
     gifts_next = solve(gifts_north[i])
@@ -415,3 +418,4 @@ gift_trips.to_csv('cluster_north_south_round_trips.csv')
 # V3.1 continent clustering:
 # cluster north + south, removed DBSCAN outliers to south, batch = 5 optimization: 12537678107.5
 # cluster north + south, removed DBSCAN outliers to south, batch = 6 optimization: 12536291165.9
+# Continent clustering 0-3, batch = 5 optimization:
