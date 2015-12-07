@@ -293,6 +293,10 @@ def trips_optimize_v2(gift_trips, batch_size):
                                                       north_pole)
                                        )
                 cur_trip = pd.concat(single_trip)
+                cur_trip_batch_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
+                cur_improve = cur_trip_init_goal - cur_trip_batch_goal
+                print 'batch improve:', cur_improve
+                cur_trip = merkov_chain_optimize(cur_trip, batch_size, batch_size+10)
                 cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
                 cur_improve = cur_trip_init_goal - cur_trip_final_goal
                 print 'iteration improve:', cur_improve
@@ -333,6 +337,42 @@ def batch_optimize(batch_gifts, weights, start, stop):
     if weariness_gain < 0:
         print 'weariness gain: %f' % weariness_gain
     return best_batch
+
+
+def merkov_chain_optimize(trips_gifts, close, far):
+    """
+    optimize batch. batch size doesn't include static points
+    """
+    n_gifts = trips_gifts.shape[0]
+    n_steps = n_gifts - far
+    switches = np.random.random_integers(close, far, size=n_steps)
+    cur_step = 0
+    trip_indexes = list(trips_gifts.index)
+
+    best_metric = weighted_trip_length(trips_gifts[['Latitude', 'Longitude']], list(trips_gifts['Weight']))
+    best_trip = trips_gifts.copy(deep=True)
+
+    while cur_step < n_steps:
+        tmp_trip = trips_gifts.copy(deep=True)
+        print np.array(tmp_trip)
+        cur_switch_0 = trip_indexes[cur_step]
+        cur_switch_1 = trip_indexes[cur_step + switches[cur_step]]
+        tmp_row = tmp_trip.loc[cur_switch_0]
+        # print tmp_row
+        tmp_trip.at[cur_switch_0] = tmp_trip.loc[cur_switch_1]
+        tmp_trip.at[cur_switch_1] = tmp_row
+        print np.array(tmp_trip)
+        cur_step += 1
+        cur_metric = weighted_trip_length(tmp_trip[['Latitude', 'Longitude']], list(tmp_trip['Weight']))
+        if cur_metric < best_metric:
+            best_metric = cur_metric
+            best_trip = tmp_trip.copy(deep=True)
+    weariness_gain = weighted_trip_length(trips_gifts[['Latitude', 'Longitude']], list(trips_gifts['Weight'])) - \
+                     weighted_trip_length(best_trip[['Latitude', 'Longitude']], list(best_trip['Weight']))
+    if weariness_gain < 0:
+        print 'weariness gain: %f' % weariness_gain
+    return best_trip
+
 """
 Start Main program
 """
@@ -351,7 +391,7 @@ def solve(gifts):
     # print(weighted_reindeer_weariness(gifts))
 
     print 'Start in trip batch optimizing'
-    gifts = trips_optimize_v2(gifts, 7)
+    gifts = trips_optimize_v2(gifts, 5)
     print(weighted_reindeer_weariness(gifts))
 
     return gifts
@@ -403,7 +443,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('cluster_continents_trips_batch_7.csv')
+# gift_trips.to_csv('cluster_continents_trips_batch_7.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
