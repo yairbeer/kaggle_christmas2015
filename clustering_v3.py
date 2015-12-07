@@ -350,16 +350,16 @@ def solve(gifts):
     gifts = trips_in_cluster_v2(gifts)
     # print(weighted_reindeer_weariness(gifts))
 
-    # print 'Start in trip batch optimizing'
-    # gifts = trips_optimize_v2(gifts, 5)
-    # print(weighted_reindeer_weariness(gifts))
+    print 'Start in trip batch optimizing'
+    gifts = trips_optimize_v2(gifts, 7)
+    print(weighted_reindeer_weariness(gifts))
 
     return gifts
 
 """
 clustering
 """
-param_grid = {'eps': [12, 14, 16, 18, 20], 'min_samples': [1000, 1500, 2000, 2500, 3000]}
+param_grid = {'eps': [18], 'min_samples': [1500]}
 for params in ParameterGrid(param_grid):
     print params
     gifts_south = gifts[gifts['Latitude'] <= -70]
@@ -403,7 +403,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('cluster_continents_trips.csv')
+gift_trips.to_csv('cluster_continents_trips_batch_7.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
@@ -430,4 +430,5 @@ gift_trips.to_csv('cluster_continents_trips.csv')
 # V3.1 continent clustering:
 # cluster north + south, removed DBSCAN outliers to south, batch = 5 optimization: 12537678107.5
 # cluster north + south, removed DBSCAN outliers to south, batch = 6 optimization: 12536291165.9
-# {'min_samples': 1250, 'eps': 16}, batch = 5 optimization: 4455537255.72
+# {'min_samples': 1250, 'eps': 16}, batch = 5 optimization: 12516053337.6
+# {'min_samples': 1250, 'eps': 16}, batch = 7 optimization: 12513554845.5
