@@ -1,4 +1,4 @@
-"""will remove this part after we get haversine package into scripts
+"""move waste gifts into south
 """
 
 from math import radians, cos, sin, asin, sqrt
