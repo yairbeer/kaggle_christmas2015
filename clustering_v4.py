@@ -100,7 +100,7 @@ def trips_in_cluster_v2(gifts):
     """
     cur_trip = 0
     cur_weight = 0
-    gifts['TripId'] = np.ones((gifts.shape[0], 1)) * (-1)
+    gifts.loc[:, 'TripId'] = np.ones((gifts.shape[0], 1)) * (-1)
 
     gifts = gifts.sort('Longitude', ascending=True)
     gift_index = list(gifts.index)
@@ -171,11 +171,11 @@ def trips_optimize_v2(gift_trips, batch_size):
             cur_improve = 1
             while cur_improve > 0:
                 cur_trip_init_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
-                print 'trip %d before optimization has %f weighted reindeer weariness' % \
-                      (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
+                # print 'trip %d before optimization has %f weighted reindeer weariness' % \
+                #       (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
                 # print 'initial merkov'
                 # cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
-                print 'batch opt'
+                # print 'batch opt'
                 single_trip = []
                 n_batches = cur_trip.shape[0] / batch_size
                 # First Batch
@@ -240,7 +240,7 @@ def trips_optimize_v2(gift_trips, batch_size):
                 # cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
                 # cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
                 # cur_improve = cur_trip_init_goal - cur_trip_final_goal
-                print 'iteration improve:', cur_improve
+                # print 'iteration improve:', cur_improve
         opt_trip.append(cur_trip)
     opt_trip = pd.concat(opt_trip)
     return opt_trip
@@ -329,7 +329,7 @@ def solve(gifts):
     # print(weighted_reindeer_weariness(gifts))
 
     print 'Start in trip batch optimizing'
-    gifts = trips_optimize_v2(gifts, 5)
+    # gifts = trips_optimize_v2(gifts, 5)
     print(weighted_reindeer_weariness(gifts))
 
     return gifts
@@ -356,27 +356,49 @@ for params in ParameterGrid(param_grid):
     #     plt.show()
 
     # Check if it is better to add last trip to south or not
+    gifts_cluster = []
     for i in labels_unique:
         if i != (-1):
+            # initial south trips
             gifts_south = solve(gifts_south)
-            gifts_next_trip_start = gift_trips['TripId'].iloc[-1] + 1
-            gifts_next = solve(gifts_north.loc[np.array(labels == i)])
-            gifts_next['TripId'] += gifts_next_trip_start
-            gift_trips = pd.concat([gift_trips, gifts_next])
+            gifts_i_trip_start = gifts_south['TripId'].iloc[-1] + 1
+            # solve i trip
+            gifts_i = solve(gifts_north.loc[np.array(labels == i)])
+            gifts_i.loc[:, 'TripId'] += gifts_i_trip_start
+            # concat
+            gift_trips_i_last = pd.concat([gifts_south, gifts_i])
+            # score before
+            score_i_last = weighted_reindeer_weariness(gift_trips_i_last)
+            print 'score without dropping last cluster trip: ', score_i_last
+            # moving last trip to south
+            gifts_i_trip_last_index = gifts_i['TripId'].iloc[-1]
+            gifts_i_trip_last = gifts_i[gifts_i['TripId'] == gifts_i_trip_last_index]
+            gifts_south_w_last = pd.concat([gifts_south, gifts_i_trip_last])
+            # recalculate south equalibirium
+            gifts_south_w_last = solve(gifts_south_w_last)
+            gifts_i_trip_wo_last = gifts_i[gifts_i['TripId'] != gifts_i_trip_last_index]
+            gifts_i_trip_wo_last.loc[:, 'TripId'] += 1
+            gift_trips_south_last = pd.concat([gifts_south_w_last, gifts_i_trip_wo_last])
+            score_south_last = weighted_reindeer_weariness(gift_trips_south_last)
+            print 'score after dropping last cluster trip', score_south_last
+            if score_i_last < score_south_last:
+                print 'last trip stays in cluster'
+                gifts_cluster.append(gifts_i)
+            else:
+                print 'last trip goes to south'
+                gifts_cluster.append(gifts_i_trip_wo_last)
+                gifts_south = gifts_south_w_last
+    print gifts_south
+    print gifts_cluster
+    gift_trips = pd.concat([[gifts_south] + gifts_cluster])
 
-    gifts_south = pd.concat([gifts_south, gifts_north.loc[np.array(labels == (-1))]])
-    gifts_south = solve(gifts_south)
-
-    gift_trips = gifts_south
-
-    for i in labels_unique:
-        if i != (-1):
-            gifts_next_trip_start = gift_trips['TripId'].iloc[-1] + 1
-            gifts_next = solve(gifts_north.loc[np.array(labels == i)])
-            gifts_next['TripId'] += gifts_next_trip_start
-            gift_trips = pd.concat([gift_trips, gifts_next])
-
+    print '*****************************'
+    print '*****************************'
+    print '*****************************'
     print(weighted_reindeer_weariness(gift_trips))
+    print '*****************************'
+    print '*****************************'
+    print '*****************************'
 
 # print gift_trips
 
@@ -389,7 +411,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('cluster_continents_trips_batch_merkov.csv')
+# gift_trips.to_csv('cluster_continents_trips_batch_merkov.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0

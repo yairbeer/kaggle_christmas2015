@@ -100,7 +100,7 @@ def trips_in_cluster_v2(gifts):
     """
     cur_trip = 0
     cur_weight = 0
-    gifts['TripId'] = np.ones((gifts.shape[0], 1)) * (-1)
+    gifts.loc[:, 'TripId'] = np.ones((gifts.shape[0], 1)) * (-1)
 
     gifts = gifts.sort('Longitude', ascending=True)
     gift_index = list(gifts.index)
@@ -108,7 +108,7 @@ def trips_in_cluster_v2(gifts):
         # add current weight
         if gifts['TripId'].loc[cur_index] == -1:
             if (cur_weight + gifts['Weight'].loc[cur_index]) <= 990:
-                gifts['TripId'].at[cur_index] = cur_trip
+                gifts['TripId'].loc[cur_index] = cur_trip
                 cur_weight += gifts['Weight'].loc[cur_index]
             else:
                 # fill up trip
@@ -117,7 +117,7 @@ def trips_in_cluster_v2(gifts):
                 # print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
                 cur_weight = 0
                 cur_trip += 1
-                gifts['TripId'].at[cur_index] = cur_trip
+                gifts['TripId'].loc[cur_index] = cur_trip
                 cur_weight += gifts['Weight'].loc[cur_index]
     trips = []
     # print 'sorting'
@@ -171,11 +171,11 @@ def trips_optimize_v2(gift_trips, batch_size):
             cur_improve = 1
             while cur_improve > 0:
                 cur_trip_init_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
-                print 'trip %d before optimization has %f weighted reindeer weariness' % \
-                      (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
+                # print 'trip %d before optimization has %f weighted reindeer weariness' % \
+                #       (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
                 # print 'initial merkov'
                 # cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
-                print 'batch opt'
+                # print 'batch opt'
                 single_trip = []
                 n_batches = cur_trip.shape[0] / batch_size
                 # First Batch
@@ -240,7 +240,7 @@ def trips_optimize_v2(gift_trips, batch_size):
                 # cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
                 # cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
                 # cur_improve = cur_trip_init_goal - cur_trip_final_goal
-                print 'iteration improve:', cur_improve
+                # print 'iteration improve:', cur_improve
         opt_trip.append(cur_trip)
     opt_trip = pd.concat(opt_trip)
     return opt_trip
@@ -337,7 +337,7 @@ def solve(gifts):
 """
 clustering
 """
-param_grid = {'eps': [10, 14, 18, 22], 'min_samples': [1500]}
+param_grid = {'eps': [10, 14, 18], 'min_samples': [500, 1000, 1500]}
 for params in ParameterGrid(param_grid):
     print params
     gifts_south = gifts[gifts['Latitude'] <= -70]
@@ -346,7 +346,7 @@ for params in ParameterGrid(param_grid):
     gifts_north_clustering = np.array(gifts_north[['Latitude', 'Longitude']])
     db = DBSCAN(eps=params['eps'], min_samples=params['min_samples']).fit(gifts_north_clustering)
     labels = pd.Series(db.labels_)
-    # print labels.value_counts()
+    print labels.value_counts()
     labels_unique = labels.unique()
 
     # # plot north clusters
@@ -364,10 +364,16 @@ for params in ParameterGrid(param_grid):
         if i != (-1):
             gifts_next_trip_start = gift_trips['TripId'].iloc[-1] + 1
             gifts_next = solve(gifts_north.loc[np.array(labels == i)])
-            gifts_next['TripId'] += gifts_next_trip_start
+            gifts_next.loc[:, 'TripId'] += gifts_next_trip_start
             gift_trips = pd.concat([gift_trips, gifts_next])
 
+    print '*****************************'
+    print '*****************************'
+    print '*****************************'
     print(weighted_reindeer_weariness(gift_trips))
+    print '*****************************'
+    print '*****************************'
+    print '*****************************'
 
 # print gift_trips
 
@@ -380,7 +386,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('cluster_continents_trips_batch_merkov.csv')
+# gift_trips.to_csv('cluster_continents_trips_batch_merkov.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
