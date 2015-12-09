@@ -329,7 +329,7 @@ def solve(gifts):
     # print(weighted_reindeer_weariness(gifts))
 
     print 'Start in trip batch optimizing'
-    # gifts = trips_optimize_v2(gifts, 5)
+    gifts = trips_optimize_v2(gifts, 5)
     print(weighted_reindeer_weariness(gifts))
 
     return gifts
@@ -337,7 +337,7 @@ def solve(gifts):
 """
 clustering
 """
-param_grid = {'eps': [2, 4, 8, 12, 16, 20], 'min_samples': [200, 600, 1000]}
+param_grid = {'eps': [8, 12, 16, 20, 25], 'min_samples': [200, 600, 1000, 1400]}
 for params in ParameterGrid(param_grid):
     print params
     gifts_south = gifts[gifts['Latitude'] <= -70]
