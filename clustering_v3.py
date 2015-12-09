@@ -1,4 +1,4 @@
-"""will remove this part after we get haversine package into scripts
+"""move waste gifts into south
 """
 
 from math import radians, cos, sin, asin, sqrt
@@ -162,7 +162,7 @@ def trips_optimize_v2(gift_trips, batch_size):
     """
     trips = gift_trips['TripId'].unique()
     opt_trip = []
-    print gift_trips
+    # print gift_trips
     for trip_i in trips:
         # single iteration per trip
         # Working from the start
@@ -173,8 +173,8 @@ def trips_optimize_v2(gift_trips, batch_size):
                 cur_trip_init_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
                 print 'trip %d before optimization has %f weighted reindeer weariness' % \
                       (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
-                print 'initial merkov'
-                cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
+                # print 'initial merkov'
+                # cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
                 print 'batch opt'
                 single_trip = []
                 n_batches = cur_trip.shape[0] / batch_size
@@ -204,7 +204,7 @@ def trips_optimize_v2(gift_trips, batch_size):
                 cur_trip = pd.concat(single_trip)
                 cur_trip_middle_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
                 cur_improve = cur_trip_init_goal - cur_trip_middle_goal
-                print 'middle improve:', cur_improve
+                # print 'middle improve:', cur_improve
                 # working from the middle of the  1st batch
                 single_trip = [cur_trip.iloc[:(batch_size/2)]]
                 cur_base = tuple(cur_trip[['Latitude', 'Longitude']].iloc[(batch_size/2) - 1])
@@ -235,11 +235,11 @@ def trips_optimize_v2(gift_trips, batch_size):
                 cur_trip = pd.concat(single_trip)
                 cur_trip_batch_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
                 cur_improve = cur_trip_init_goal - cur_trip_batch_goal
-                print 'batch improve:', cur_improve
-                print '1 more merkov'
-                cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
-                cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
-                cur_improve = cur_trip_init_goal - cur_trip_final_goal
+                # print 'batch improve:', cur_improve
+                # print '1 more merkov'
+                # cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
+                # cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
+                # cur_improve = cur_trip_init_goal - cur_trip_final_goal
                 print 'iteration improve:', cur_improve
         opt_trip.append(cur_trip)
     opt_trip = pd.concat(opt_trip)
@@ -272,8 +272,8 @@ def batch_optimize(batch_gifts, weights, start, stop):
 
     # print 'After optimization %f' % weighted_sub_trip_length(best_batch[['Latitude', 'Longitude']],
     #                                                          weights, start, stop)
-    if (best_metric - base_metric) < 0:
-        print 'weariness gain: %f' % (best_metric - base_metric)
+    # if (best_metric - base_metric) < 0:
+    #     print 'weariness gain: %f' % (best_metric - base_metric)
     return best_batch
 
 
@@ -307,8 +307,8 @@ def merkov_chain_optimize(trips_gifts, close, far):
             best_metric = cur_metric
             best_trip = tmp_trip
             # print best_trip
-    if (best_metric - base_metric) < 0:
-        print 'weariness gain: %f' % (best_metric - base_metric)
+    # if (best_metric - base_metric) < 0:
+    #     print 'weariness gain: %f' % (best_metric - base_metric)
     return best_trip
 
 """
@@ -329,7 +329,7 @@ def solve(gifts):
     # print(weighted_reindeer_weariness(gifts))
 
     print 'Start in trip batch optimizing'
-    gifts = trips_optimize_v2(gifts, 7)
+    gifts = trips_optimize_v2(gifts, 5)
     print(weighted_reindeer_weariness(gifts))
 
     return gifts
@@ -337,7 +337,7 @@ def solve(gifts):
 """
 clustering
 """
-param_grid = {'eps': [18], 'min_samples': [1500]}
+param_grid = {'eps': [10, 14, 18, 22], 'min_samples': [1500]}
 for params in ParameterGrid(param_grid):
     print params
     gifts_south = gifts[gifts['Latitude'] <= -70]
@@ -349,11 +349,11 @@ for params in ParameterGrid(param_grid):
     # print labels.value_counts()
     labels_unique = labels.unique()
 
-    # plot north clusters
-    for ind in labels_unique:
-        plt.plot(np.array(gifts_north['Longitude'].loc[np.array(labels == ind)]),
-                 np.array(gifts_north['Latitude'].loc[np.array(labels == ind)]), 'ro')
-        plt.show()
+    # # plot north clusters
+    # for ind in labels_unique:
+    #     plt.plot(np.array(gifts_north['Longitude'].loc[np.array(labels == ind)]),
+    #              np.array(gifts_north['Latitude'].loc[np.array(labels == ind)]), 'ro')
+    #     plt.show()
 
     gifts_south = pd.concat([gifts_south, gifts_north.loc[np.array(labels == (-1))]])
     gifts_south = solve(gifts_south)
