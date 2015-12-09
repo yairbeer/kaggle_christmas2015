@@ -337,7 +337,7 @@ def solve(gifts):
 """
 clustering
 """
-param_grid = {'eps': [4, 8, 12, 16, 20], 'min_samples': [200, 600, 1000]}
+param_grid = {'eps': [2, 4, 8, 12, 16, 20], 'min_samples': [200, 600, 1000]}
 for params in ParameterGrid(param_grid):
     print params
     gifts_south = gifts[gifts['Latitude'] <= -70]
