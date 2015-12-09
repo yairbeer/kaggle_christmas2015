@@ -337,7 +337,7 @@ def solve(gifts):
 """
 clustering
 """
-param_grid = {'eps': [10, 4, 8, 12, 16, 20], 'min_samples': [200]}
+param_grid = {'eps': [4, 8, 12, 16, 20], 'min_samples': [200, 600, 1000]}
 for params in ParameterGrid(param_grid):
     print params
     gifts_south = gifts[gifts['Latitude'] <= -70]
@@ -348,6 +348,8 @@ for params in ParameterGrid(param_grid):
     labels = pd.Series(db.labels_)
     print labels.value_counts()
     labels_unique = labels.unique()
+
+    gifts_south = pd.concat([gifts_south, gifts_north.loc[np.array(labels == (-1))]])
 
     # # plot north clusters
     # for ind in labels_unique:
@@ -396,9 +398,7 @@ for params in ParameterGrid(param_grid):
                 print 'last trip goes to south'
                 gifts_cluster.append(gifts_i_trip_wo_last)
                 gifts_south = gifts_south_w_last
-    print gifts_south
-    print gifts_cluster
-    gift_trips = pd.concat([[gifts_south] + gifts_cluster])
+    gift_trips = pd.concat([gifts_south] + gifts_cluster)
 
     print '*****************************'
     print '*****************************'
