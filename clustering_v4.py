@@ -337,7 +337,7 @@ def solve(gifts):
 """
 clustering
 """
-param_grid = {'eps': [10, 14, 18, 22], 'min_samples': [100, 200, 400, 800, 1200, 1600]}
+param_grid = {'eps': [10, 4, 8, 12, 16, 20], 'min_samples': [200]}
 for params in ParameterGrid(param_grid):
     print params
     gifts_south = gifts[gifts['Latitude'] <= -70]
@@ -359,25 +359,33 @@ for params in ParameterGrid(param_grid):
     gifts_cluster = []
     for i in labels_unique:
         if i != (-1):
-            # initial south trips
-            gifts_south = solve(gifts_south)
-            gifts_i_trip_start = gifts_south['TripId'].iloc[-1] + 1
             # solve i trip
-            gifts_i = solve(gifts_north.loc[np.array(labels == i)])
-            gifts_i.loc[:, 'TripId'] += gifts_i_trip_start
+            gifts_i = gifts_north.loc[np.array(labels == i)]
+            if gifts_cluster:
+                gifts_cluster_trip_start = gifts_cluster[-1]['TripId'].iloc[-1] + 1
+            gifts_i = solve(gifts_i)
+            if gifts_cluster:
+                gifts_i.loc[:, 'TripId'] += gifts_cluster_trip_start
+            # south trips
+            gifts_south_trip_start = gifts_i['TripId'].iloc[-1] + 1
+            gifts_south = solve(gifts_south)
+            gifts_south.loc[:, 'TripId'] += gifts_south_trip_start
             # concat
             gift_trips_i_last = pd.concat([gifts_south, gifts_i])
             # score before
             score_i_last = weighted_reindeer_weariness(gift_trips_i_last)
             print 'score without dropping last cluster trip: ', score_i_last
+
             # moving last trip to south
             gifts_i_trip_last_index = gifts_i['TripId'].iloc[-1]
             gifts_i_trip_last = gifts_i[gifts_i['TripId'] == gifts_i_trip_last_index]
             gifts_south_w_last = pd.concat([gifts_south, gifts_i_trip_last])
+
             # recalculate south equalibirium
-            gifts_south_w_last = solve(gifts_south_w_last)
             gifts_i_trip_wo_last = gifts_i[gifts_i['TripId'] != gifts_i_trip_last_index]
-            gifts_i_trip_wo_last.loc[:, 'TripId'] += 1
+            gifts_south_trip_start = gifts_i_trip_wo_last['TripId'].iloc[-1] + 1
+            gifts_south_w_last = solve(gifts_south_w_last)
+            gifts_south_w_last.loc[:, 'TripId'] += gifts_south_trip_start
             gift_trips_south_last = pd.concat([gifts_south_w_last, gifts_i_trip_wo_last])
             score_south_last = weighted_reindeer_weariness(gift_trips_south_last)
             print 'score after dropping last cluster trip', score_south_last
