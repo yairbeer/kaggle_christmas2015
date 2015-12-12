@@ -315,30 +315,39 @@ def merkov_chain_optimize(trips_gifts, close, far):
     return best_trip
 
 
-def batch_optimize_dynamic(batch_gifts, weights, start, stop, n_batch):
+def batch_optimize_dynamic(batch_gifts, start, n_batch):
     """
-    optimize batch. batch size doesn't include static points
+    optimize a single batch. need to add sleigh weight
+    :param batch_gifts: free parameters for optimizing, last point is static
+    :param start: starting point
+    :param n_batch: size of batch
+    :return: optimized batch
     """
 
     batch = list(batch_gifts.index)
     permutations = list(itertools.permutations(batch))
-    best_metric = weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']], weights, start, stop)
-    base_metric = best_metric
-    best_batch = batch_gifts.copy(deep=True)
-    # print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
-    #                                                           weights, start, stop)
-    haver_mat = np.ones((len(batch)))
+
+    # calculating all the edges
+    haver_mat = np.ones((n_batch + 1, n_batch + 1))
+    for i in range(haver_mat.shape[1]):
+        haver_mat[0, i] = haversine(list(start['Latitude', 'Longitude']),
+                                    list(batch_gifts.loc[batch[i], ['Latitude', 'Longitude']]))
     for i in range(haver_mat.shape[0]):
         for j in range(i + 1, haver_mat.shape[0]):
             haver_mat[i, j] = haversine(list(batch_gifts.loc[batch[i], ['Latitude', 'Longitude']]),
                                         list(batch_gifts.loc[batch[j], ['Latitude', 'Longitude']]))
+    best_metric = weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']], batch_gifts[['Weight']], start)
+    base_metric = best_metric
+    best_batch = batch_gifts.copy(deep=True)
+    # print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
+    #                                                           weights, start, stop)
 
     for perm in permutations:
         tmp_gifts = batch_gifts.copy(deep=True)
         tmp_gifts = tmp_gifts.loc[list(perm)]
         weights_batch = list(batch_gifts['Weight'])
         weights = weights_batch + weights[n_batch:]
-        cur_metric = weighted_sub_trip_length_dynamic(tmp_gifts[['Latitude', 'Longitude']], weights, start, stop,
+        cur_metric = weighted_sub_trip_length_dynamic(tmp_gifts[['Latitude', 'Longitude']], weights, start,
                                                       haver_mat)
         # print perm
         # print tmp_gifts[['Latitude', 'Longitude']]
@@ -354,27 +363,21 @@ def batch_optimize_dynamic(batch_gifts, weights, start, stop, n_batch):
     return best_batch
 
 
-def weighted_sub_trip_length_dynamic(stops, weights, start, end, haversine_matrix):
+def weighted_sub_trip_length_dynamic(stops, weights, haversine_matrix):
     """
-    :param stops:  places to put presents
-    :param weights: weights of all the presents till the end of the WHOLE trip
-    :param start: static starting point
-    :param end: static end point
+    :param stops: list of index places to put presents including end point
+    :param weights: weights of all the presents in the batch including end point
+    :param haversine_matrix: array with haversine
     :return: metric score
     """
-    tuples = [tuple(x) for x in stops.values]
-    # adding the last trip, with just the sleigh weight
-    tuples.append(end)
-    tmp_weights = list(weights)
-    tmp_weights.append(sleigh_weight)
 
-    dist = 0.0
-    prev_stop = start
+    tmp_weights = list(weights)
+
+    dist = 0
     prev_weight = sum(tmp_weights)
-    for i in range(len(tuples)):
-        dist += haversine(tuples[i], prev_stop) * prev_weight
-        prev_stop = tuples[i]
-        prev_weight = prev_weight - tmp_weights[i]
+    for i in range(1, len(stops)):
+        dist += haversine_matrix[stops[i - 1], stops[i]] * prev_weight
+        prev_weight = prev_weight - tmp_weights[stops[i]]
     return dist
 
 """
