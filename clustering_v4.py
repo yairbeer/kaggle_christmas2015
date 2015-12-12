@@ -315,40 +315,68 @@ def merkov_chain_optimize(trips_gifts, close, far):
     return best_trip
 
 
-def batch_optimize_dynamic(batch_gifts, start, n_batch):
+def trips_optimize_v3(gift_trips, batch_size):
+    """
+    Use optimized track in each trip
+    """
+    trips = gift_trips['TripId'].unique()
+    opt_trip = []
+    # print gift_trips
+    for trip_i in trips:
+        # single iteration per trip
+        # Working from the start
+        cur_trip = gift_trips[gift_trips['TripId'] == trip_i]
+        cur_trip_init_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
+        print 'trip %d before optimization has %f weighted reindeer weariness' % \
+              (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
+        """
+        Need to add 1st stop at the north with weight 0 and back track to the north pole
+        """
+        north_trip_start = cur_trip.iloc[0]
+        north_trip_end = cur_trip.iloc[0]
+        single_trip = []
+        for batch_i in range(1, cur_trip.shape[0], batch_size):
+            single_trip.append(batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size - 1]))
+        cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
+        cur_improve = cur_trip_init_goal - cur_trip_final_goal
+        print 'iteration improve:', cur_improve
+        opt_trip.append(cur_trip)
+    opt_trip = pd.concat(opt_trip)
+    return opt_trip
+
+
+def batch_optimize_dynamic(batch_gifts):
     """
     optimize a single batch. need to add sleigh weight
     :param batch_gifts: free parameters for optimizing, last point is static
-    :param start: starting point
-    :param n_batch: size of batch
     :return: optimized batch
     """
 
     batch = list(batch_gifts.index)
-    permutations = list(itertools.permutations(batch))
+    n_batch = len(batch)
 
     # calculating all the edges
-    haver_mat = np.ones((n_batch + 1, n_batch + 1))
-    for i in range(haver_mat.shape[1]):
-        haver_mat[0, i] = haversine(list(start['Latitude', 'Longitude']),
-                                    list(batch_gifts.loc[batch[i], ['Latitude', 'Longitude']]))
+    batch_gifts_weights = batch_gifts.loc[:, ['Weight']]
+    haver_mat = np.ones((n_batch, n_batch))
     for i in range(haver_mat.shape[0]):
-        for j in range(i + 1, haver_mat.shape[0]):
-            haver_mat[i, j] = haversine(list(batch_gifts.loc[batch[i], ['Latitude', 'Longitude']]),
-                                        list(batch_gifts.loc[batch[j], ['Latitude', 'Longitude']]))
-    best_metric = weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']], batch_gifts[['Weight']], start)
-    base_metric = best_metric
-    best_batch = batch_gifts.copy(deep=True)
+        for j in range(haver_mat.shape[0]):
+            if i != j:
+                haver_mat[i, j] = haversine(list(batch_gifts.loc[batch[i], ['Latitude', 'Longitude']]),
+                                            list(batch_gifts.loc[batch[j], ['Latitude', 'Longitude']]))
+    best_metric = weighted_sub_trip_length_dynamic(range(haver_mat.shape[0]), batch_gifts_weights, haver_mat)
+    best_batch = range(haver_mat.shape[0])
     # print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
     #                                                           weights, start, stop)
 
-    for perm in permutations:
+    tries = list(itertools.permutations(range(1, n_batch-1)))
+    tries = map(lambda x: [0] + x + [n_batch-1], tries)
+
+    for perm in tries:
         tmp_gifts = batch_gifts.copy(deep=True)
         tmp_gifts = tmp_gifts.loc[list(perm)]
         weights_batch = list(batch_gifts['Weight'])
         weights = weights_batch + weights[n_batch:]
-        cur_metric = weighted_sub_trip_length_dynamic(tmp_gifts[['Latitude', 'Longitude']], weights, start,
-                                                      haver_mat)
+        cur_metric = weighted_sub_trip_length_dynamic(perm, weights, haver_mat)
         # print perm
         # print tmp_gifts[['Latitude', 'Longitude']]
         # print cur_metric
@@ -383,7 +411,7 @@ def weighted_sub_trip_length_dynamic(stops, weights, haversine_matrix):
 """
 Start Main program
 """
-# GiftId   Latitude   Longitude     Weight  cluster_lon
+# GiftId   Latitude   Longitude     Weight
 gifts = pd.read_csv('gifts.csv')
 # gifts = gifts.iloc[:1000]  # training
 
