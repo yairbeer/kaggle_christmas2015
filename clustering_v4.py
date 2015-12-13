@@ -171,8 +171,8 @@ def trips_optimize_v2(gift_trips, batch_size):
             cur_improve = 1
             while cur_improve > 0:
                 cur_trip_init_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
-                print 'trip %d before optimization has %f weighted reindeer weariness' % \
-                      (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
+                # print 'trip %d before optimization has %f weighted reindeer weariness' % \
+                #       (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
                 # print 'initial merkov'
                 # cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
                 # print 'batch opt'
@@ -242,7 +242,7 @@ def trips_optimize_v2(gift_trips, batch_size):
                 # cur_trip = merkov_chain_optimize(cur_trip, batch_size, 2 * batch_size)
                 cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
                 cur_improve = cur_trip_init_goal - cur_trip_final_goal
-                print 'iteration improve:', cur_improve
+                # print 'iteration improve:', cur_improve
         opt_trip.append(cur_trip)
     opt_trip = pd.concat(opt_trip)
     return opt_trip
@@ -327,19 +327,28 @@ def trips_optimize_v3(gift_trips, batch_size):
         # Working from the start
         cur_trip = gift_trips[gift_trips['TripId'] == trip_i]
         cur_trip_init_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
-        print 'trip %d before optimization has %f weighted reindeer weariness' % \
-              (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
-        """
-        Need to add 1st stop at the north with weight 0 and back track to the north pole
-        """
-        north_trip_start = cur_trip.iloc[0]
-        north_trip_end = cur_trip.iloc[0]
+        # print 'trip %d before optimization has %f weighted reindeer weariness' % \
+        #       (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
+        # add first and last stop in the north pole
+        north_trip_start = pd.DataFrame([[-1, 90, 0, 0, trip_i]],
+                                        columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId"])
+        north_trip_end = pd.DataFrame([[-1, 90, 0, 10, trip_i]],
+                                      columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId"])
+        cur_trip = pd.concat([north_trip_start, cur_trip, north_trip_end])
         single_trip = []
         for batch_i in range(1, cur_trip.shape[0], batch_size):
             single_trip.append(batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size - 1]))
+        if cur_trip.shape[0] > (cur_trip.shape[0] / batch_size):
+            if cur_trip.shape[0] > (cur_trip.shape[0] / batch_size + 2):
+                single_trip.append(batch_optimize_dynamic(cur_trip.iloc[cur_trip.shape[0] / batch_size:]))
+            else:
+                single_trip.append(cur_trip.iloc[cur_trip.shape[0] / batch_size:])
+        cur_trip = pd.concat(single_trip)
+        # remove the return to the north pole
+        cur_trip = cur_trip.iloc[:-1]
         cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
         cur_improve = cur_trip_init_goal - cur_trip_final_goal
-        print 'iteration improve:', cur_improve
+        # print 'iteration improve:', cur_improve
         opt_trip.append(cur_trip)
     opt_trip = pd.concat(opt_trip)
     return opt_trip
@@ -349,22 +358,22 @@ def batch_optimize_dynamic(batch_gifts):
     """
     optimize a single batch. need to add sleigh weight
     :param batch_gifts: free parameters for optimizing, last point is static
-    :return: optimized batch
+    :return: optimized batch without start
     """
 
-    batch = list(batch_gifts.index)
-    n_batch = len(batch)
+    batch_index = list(batch_gifts.index)
+    n_batch = len(batch_index)
 
     # calculating all the edges
-    batch_gifts_weights = batch_gifts.loc[:, ['Weight']]
+    batch_gifts_weights = list(batch_gifts['Weight'])
     haver_mat = np.ones((n_batch, n_batch))
     for i in range(haver_mat.shape[0]):
         for j in range(haver_mat.shape[0]):
             if i != j:
-                haver_mat[i, j] = haversine(list(batch_gifts.loc[batch[i], ['Latitude', 'Longitude']]),
-                                            list(batch_gifts.loc[batch[j], ['Latitude', 'Longitude']]))
+                haver_mat[i, j] = haversine(list(batch_gifts.iloc[batch_index[i], ['Latitude', 'Longitude']]),
+                                            list(batch_gifts.iloc[batch_index[j], ['Latitude', 'Longitude']]))
     best_metric = weighted_sub_trip_length_dynamic(range(haver_mat.shape[0]), batch_gifts_weights, haver_mat)
-    best_batch = range(haver_mat.shape[0])
+    best_perm = range(haver_mat.shape[0])
     # print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
     #                                                           weights, start, stop)
 
@@ -372,23 +381,26 @@ def batch_optimize_dynamic(batch_gifts):
     tries = map(lambda x: [0] + x + [n_batch-1], tries)
 
     for perm in tries:
-        tmp_gifts = batch_gifts.copy(deep=True)
-        tmp_gifts = tmp_gifts.loc[list(perm)]
-        weights_batch = list(batch_gifts['Weight'])
-        weights = weights_batch + weights[n_batch:]
-        cur_metric = weighted_sub_trip_length_dynamic(perm, weights, haver_mat)
+        cur_metric = weighted_sub_trip_length_dynamic(perm, batch_gifts_weights, haver_mat)
         # print perm
         # print tmp_gifts[['Latitude', 'Longitude']]
         # print cur_metric
         if cur_metric < best_metric:
             best_metric = cur_metric
-            best_batch = tmp_gifts.copy(deep=True)
+            best_perm = perm
 
+    # from order to opt batch
+    opt_batch_index = []
+    for i in range(len(best_perm)):
+        opt_batch_index.append(batch_index[best_perm[i]])
+
+    opt_batch = batch_gifts.iloc[best_perm]
+    print opt_batch
     # print 'After optimization %f' % weighted_sub_trip_length(best_batch[['Latitude', 'Longitude']],
     #                                                          weights, start, stop)
     # if (best_metric - base_metric) < 0:
     #     print 'weariness gain: %f' % (best_metric - base_metric)
-    return best_batch
+    return best_perm
 
 
 def weighted_sub_trip_length_dynamic(stops, weights, haversine_matrix):
@@ -425,8 +437,8 @@ def solve(gifts):
     gifts = trips_in_cluster_v2(gifts)
     # print(weighted_reindeer_weariness(gifts))
 
-    print 'Start in trip batch optimizing'
-    gifts = trips_optimize_v2(gifts, 8)
+    # print 'Start in trip batch optimizing'
+    gifts = trips_optimize_v3(gifts, 5)
     print(weighted_reindeer_weariness(gifts))
 
     return gifts
@@ -434,7 +446,7 @@ def solve(gifts):
 """
 clustering
 """
-param_grid = {'eps': [16], 'min_samples': [1000]}
+param_grid = {'eps': [8, 12, 16, 20], 'min_samples': [600, 1000, 1400]}
 for params in ParameterGrid(param_grid):
     print params
     gifts_south = gifts[gifts['Latitude'] <= -70]
@@ -517,7 +529,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('cluster_continents_trips_batch_81.csv')
+# gift_trips.to_csv('cluster_continents_trips_batch_81.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
