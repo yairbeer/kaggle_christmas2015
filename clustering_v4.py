@@ -344,6 +344,7 @@ def trips_optimize_v3(gift_trips, batch_size):
             else:
                 single_trip.append(cur_trip.iloc[cur_trip.shape[0] / batch_size:])
         cur_trip = pd.concat(single_trip)
+        print cur_trip
         # remove the return to the north pole
         cur_trip = cur_trip.iloc[:-1]
         cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
@@ -370,8 +371,8 @@ def batch_optimize_dynamic(batch_gifts):
     for i in range(haver_mat.shape[0]):
         for j in range(haver_mat.shape[0]):
             if i != j:
-                haver_mat[i, j] = haversine(list(batch_gifts.iloc[batch_index[i], ['Latitude', 'Longitude']]),
-                                            list(batch_gifts.iloc[batch_index[j], ['Latitude', 'Longitude']]))
+                haver_mat[i, j] = haversine(list(batch_gifts.loc[batch_index[i], ['Latitude', 'Longitude']]),
+                                            list(batch_gifts.loc[batch_index[j], ['Latitude', 'Longitude']]))
     best_metric = weighted_sub_trip_length_dynamic(range(haver_mat.shape[0]), batch_gifts_weights, haver_mat)
     best_perm = range(haver_mat.shape[0])
     # print 'Before optimization %f' % weighted_sub_trip_length(batch_gifts[['Latitude', 'Longitude']],
