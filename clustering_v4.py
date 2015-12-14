@@ -265,7 +265,6 @@ def trips_optimize_v3(gift_trips, batch_size):
         cur_trip_init_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
         print 'trip %d before optimization has %f weighted reindeer weariness' % \
               (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
-        print sum(list(cur_trip['Weight']))
         # print cur_trip
         # print cur_trip.shape
         # add first and last stop in the north pole
@@ -279,12 +278,14 @@ def trips_optimize_v3(gift_trips, batch_size):
             if (batch_i + batch_size) < cur_trip.shape[0]:
                 # print 'norm batch'
                 # print cur_trip.iloc[batch_i - 1: batch_i + batch_size]
-                optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size])
+                optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size],
+                                                        cur_trip['Weight'].iloc[batch_i - 1:])
             else:
                 if cur_trip.iloc[batch_i - 1:].shape[0] > 3:
                     print 'last batch opt'
                     # print cur_trip.iloc[batch_i - 1:]
-                    optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1:])
+                    optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1:],
+                                                            cur_trip['Weight'].iloc[batch_i - 1:])
                 else:
                     print 'last batch not opt'
                     # print cur_trip.iloc[batch_i:]
@@ -294,7 +295,6 @@ def trips_optimize_v3(gift_trips, batch_size):
         # remove the return to the north pole
         cur_trip = cur_trip.iloc[:-1]
         # print cur_trip
-        print sum(list(cur_trip['Weight']))
         cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
         cur_improve = cur_trip_init_goal - cur_trip_final_goal
         print 'iteration improve:', cur_improve
@@ -303,7 +303,7 @@ def trips_optimize_v3(gift_trips, batch_size):
     return opt_trip
 
 
-def batch_optimize_dynamic(batch_gifts):
+def batch_optimize_dynamic(batch_gifts, batch_weights):
     """
     optimize a single batch. need to add sleigh weight
     :param batch_gifts: free parameters for optimizing, last point is static
@@ -314,7 +314,7 @@ def batch_optimize_dynamic(batch_gifts):
     n_batch = len(batch_index)
 
     # calculating all the edges
-    batch_gifts_weights = list(batch_gifts['Weight'])
+    batch_gifts_weights = list(batch_weights)
     haver_mat = np.ones((n_batch, n_batch))
     for i in range(haver_mat.shape[0]):
         for j in range(haver_mat.shape[0]):
