@@ -342,21 +342,24 @@ def trips_optimize_v3(gift_trips, batch_size):
         cur_trip = pd.concat([north_trip_start, cur_trip, north_trip_end])
         single_trip = []
         for batch_i in range(1, cur_trip.shape[0], batch_size):
-            single_trip.append(batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size]))
-        if cur_trip.shape[0] > (batch_i + batch_size - 1):
-            if cur_trip.shape[0] > ((batch_i + batch_size - 1) + 2):
-                single_trip.append(batch_optimize_dynamic(cur_trip.iloc[(batch_i + batch_size - 1):]))
-                print 'optimizing last batch'
+            if (batch_i + batch_size) < cur_trip.shape[0]:
+                print 'norm batch'
+                print cur_trip.iloc[batch_i - 1: batch_i + batch_size]
+                optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size])
             else:
-                single_trip.append(cur_trip.iloc[(batch_i + batch_size - 1):])
-                print 'adding last batch'
-        else:
-            print 'no treatment needed'
+                if cur_trip.iloc[batch_i - 1:].shape[0] > 3:
+                    print 'last batch opt'
+                    print cur_trip.iloc[batch_i - 1:]
+                    optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1:])
+                else:
+                    print 'last batch not opt'
+                    print cur_trip.iloc[batch_i:]
+                    optimize_batch = cur_trip.iloc[batch_i:]
+            single_trip.append(optimize_batch)
         cur_trip = pd.concat(single_trip)
         # remove the return to the north pole
         cur_trip = cur_trip.iloc[:-1]
         print cur_trip
-        print cur_trip.shape
 
         cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
         cur_improve = cur_trip_init_goal - cur_trip_final_goal
