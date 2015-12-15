@@ -368,7 +368,7 @@ def solve(gifts):
     # print(weighted_reindeer_weariness(gifts))
 
     # print 'Start in trip batch optimizing'
-    gifts = trips_optimize_v4(gifts, 5, 4, 200)
+    gifts = trips_optimize_v4(gifts, 5, 4, 5)
     print(weighted_reindeer_weariness(gifts))
 
     return gifts
