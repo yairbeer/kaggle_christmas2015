@@ -289,15 +289,13 @@ def k_change_optimize_dynamic(trip_gifts, k_changes, opt_iterations):
     trip_index = list(trip_gifts.index)
     trip_index[0] = -1
     trip_gifts.index = trip_index
-    print trip_gifts
+
     # calculating all the edges
     gifts_weights = list(trip_gifts['Weight'])
     haver_mat = np.ones((n_trip, n_trip))
     for i in range(haver_mat.shape[0]):
         for j in range(haver_mat.shape[0]):
             if i != j:
-                print list(trip_gifts.loc[trip_index[i], ['Latitude', 'Longitude']]), \
-                    list(trip_gifts.loc[trip_index[j], ['Latitude', 'Longitude']])
                 haver_mat[i, j] = haversine(list(trip_gifts.loc[trip_index[i], ['Latitude', 'Longitude']]),
                                             list(trip_gifts.loc[trip_index[j], ['Latitude', 'Longitude']]))
 
@@ -316,7 +314,7 @@ def k_change_optimize_dynamic(trip_gifts, k_changes, opt_iterations):
         for j in range(change_iter.shape[0] - 1):
             tmp_perm[change_iter[j+1]] = best_perm[change_iter[j]]
         tmp_perm[change_iter[0]] = best_perm[change_iter[-1]]
-        cur_metric = weighted_sub_trip_length_dynamic(tmp_perm, batch_gifts_weights, haver_mat)
+        cur_metric = weighted_sub_trip_length_dynamic(tmp_perm, gifts_weights, haver_mat)
         if cur_metric < best_metric:
             best_metric = cur_metric
             best_perm = tmp_perm
