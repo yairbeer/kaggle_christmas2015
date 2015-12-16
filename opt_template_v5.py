@@ -303,7 +303,7 @@ gifts = pd.read_csv('gifts.csv')
 gifts_trip = pd.merge(gifts_trip, gifts, on='GiftId')
 print gifts_trip
 print(weighted_reindeer_weariness(gifts_trip))
-gifts_trip = trips_optimize_v4(gifts_trip, 9, 4, 200)
+gifts_trip = trips_optimize_v4(gifts_trip, 9, 4, 100)
 print gifts_trip
 print(weighted_reindeer_weariness(gifts_trip))
 
