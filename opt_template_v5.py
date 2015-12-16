@@ -94,59 +94,6 @@ def weighted_reindeer_weariness(all_trips):
     return dist
 
 
-def trips_in_cluster_v2(gifts):
-    """
-    Use sorted in latitude trips in each cell
-    """
-    cur_trip = 0
-    cur_weight = 0
-    gifts.loc[:, 'TripId'] = np.ones((gifts.shape[0], 1)) * (-1)
-
-    gifts = gifts.sort('Longitude', ascending=True)
-    gift_index = list(gifts.index)
-    for cur_index in gift_index:
-        # add current weight
-        if gifts['TripId'].loc[cur_index] == -1:
-            if (cur_weight + gifts['Weight'].loc[cur_index]) <= 990:
-                gifts['TripId'].at[cur_index] = cur_trip
-                cur_weight += gifts['Weight'].loc[cur_index]
-            else:
-                # fill up trip
-                gifts, cur_weight = fill_trip(gifts, cur_weight, cur_trip, gifts.loc[cur_index], 1.0)
-                # add last weight
-                # print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
-                cur_weight = 0
-                cur_trip += 1
-                gifts['TripId'].at[cur_index] = cur_trip
-                cur_weight += gifts['Weight'].loc[cur_index]
-    trips = []
-    # print 'sorting'
-    for trip in gifts['TripId'].unique():
-        cur_trip = gifts[gifts['TripId'] == trip]
-        cur_trip = cur_trip.sort('Latitude', ascending=False)
-        trips.append(cur_trip)
-    gifts = pd.concat(trips, axis=0)
-    # print gifts
-    return gifts
-
-
-def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit):
-    """
-    Fill trips to the top
-    """
-    cur_long = cur_gift['Longitude']
-    relevant_gifts = gifts[gifts['Longitude'] < (cur_long + long_limit)]
-    relevant_gifts = relevant_gifts[gifts['TripId'] < 0]
-    relevant_gifts = relevant_gifts.sort('Longitude', ascending=True)
-    relevant_gifts_index = list(relevant_gifts.index)
-    for cur_index in relevant_gifts_index:
-        # add current weight
-        if (cur_weight + relevant_gifts['Weight'].loc[cur_index]) <= 990:
-            gifts['TripId'].at[cur_index] = cur_trip
-            cur_weight += relevant_gifts['Weight'].loc[cur_index]
-    return gifts, cur_weight
-
-
 def trips_optimize_v4(gift_trips, batch_size, k_changes, changes_iterations):
     """
     Use optimized track in each trip
@@ -351,177 +298,22 @@ def weighted_sub_trip_length_dynamic(stops, weights, haversine_matrix):
     return dist
 
 
-def trips_in_cluster_v3(gifts):
-    """
-    Use sorted in latitude trips in each cell
-    """
-    cur_trip = 0
-    cur_weight = 0
-    gifts.loc[:, 'TripId'] = np.ones((gifts.shape[0], 1)) * (-1)
-
-    gifts = gifts.sort('Longitude', ascending=True)
-    gift_index = list(gifts.index)
-    for cur_index in gift_index:
-        # add current weight
-        if gifts['TripId'].loc[cur_index] == -1:
-            if (cur_weight + gifts['Weight'].loc[cur_index]) <= 990:
-                gifts['TripId'].at[cur_index] = cur_trip
-                cur_weight += gifts['Weight'].loc[cur_index]
-            else:
-                # fill up trip
-                gifts, cur_weight = fill_trip(gifts, cur_weight, cur_trip, gifts.loc[cur_index], 1.0)
-                # add last weight
-                # print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
-                cur_weight = 0
-                cur_trip += 1
-                gifts['TripId'].at[cur_index] = cur_trip
-                cur_weight += gifts['Weight'].loc[cur_index]
-    trips = []
-    # print 'sorting'
-    for trip in gifts['TripId'].unique():
-        cur_trip = gifts[gifts['TripId'] == trip]
-        cur_trip = cur_trip.sort('Latitude', ascending=False)
-        trips.append(cur_trip)
-    gifts = pd.concat(trips, axis=0)
-    # print gifts
-    return gifts
-
-"""
-Start Main program
-"""
-# GiftId   Latitude   Longitude     Weight
+gifts_trip = pd.read_csv('shootoutyoureye_template.csv')
 gifts = pd.read_csv('gifts.csv')
-# gifts = gifts.iloc[:1000]  # training
-
-
-def solve(gifts):
-    # Main parameters
-    # n_gifts = gifts.shape[0]
-    # print 'There are %d gifts to distribute' % n_gifts
-
-    # print 'Starting to plan trips by longitude'
-    gifts = trips_in_cluster_v2(gifts)
-    # print(weighted_reindeer_weariness(gifts))
-
-    # print 'Start in trip batch optimizing'
-    gifts = trips_optimize_v4(gifts, 9, 4, 50)
-    print(weighted_reindeer_weariness(gifts))
-
-    return gifts
-
-"""
-clustering
-"""
-param_grid = {'eps': [20], 'min_samples': [1400]}
-for params in ParameterGrid(param_grid):
-    print params
-    gifts_south = gifts[gifts['Latitude'] <= -70]
-    gifts_north = gifts[gifts['Latitude'] > -70]
-
-    gifts_north_clustering = np.array(gifts_north[['Latitude', 'Longitude']])
-    db = DBSCAN(eps=params['eps'], min_samples=params['min_samples']).fit(gifts_north_clustering)
-    labels = pd.Series(db.labels_)
-    print labels.value_counts()
-    labels_unique = labels.unique()
-
-    gifts_south = pd.concat([gifts_south, gifts_north.loc[np.array(labels == (-1))]])
-
-    # # plot north clusters
-    # for ind in labels_unique:
-    #     plt.plot(np.array(gifts_north['Longitude'].loc[np.array(labels == ind)]),
-    #              np.array(gifts_north['Latitude'].loc[np.array(labels == ind)]), 'ro')
-    #     plt.grid(True)
-    #     plt.show()
-
-    # Check if it is better to add last trip to south or not
-    gifts_cluster = []
-    for i in labels_unique:
-        if i != (-1):
-            # solve i trip
-            gifts_i = gifts_north.loc[np.array(labels == i)]
-            if gifts_cluster:
-                gifts_cluster_trip_start = gifts_cluster[-1]['TripId'].iloc[-1] + 1
-            gifts_i = solve(gifts_i)
-            if gifts_cluster:
-                gifts_i.loc[:, 'TripId'] += gifts_cluster_trip_start
-            # south trips
-            gifts_south_trip_start = gifts_i['TripId'].iloc[-1] + 1
-            gifts_south = solve(gifts_south)
-            gifts_south.loc[:, 'TripId'] += gifts_south_trip_start
-            # concat
-            gift_trips_i_last = pd.concat([gifts_south, gifts_i])
-            # score before
-            score_i_last = weighted_reindeer_weariness(gift_trips_i_last)
-            print 'score without dropping last cluster trip: ', score_i_last
-
-            # moving last trip to south
-            gifts_i_trip_last_index = gifts_i['TripId'].iloc[-1]
-            gifts_i_trip_last = gifts_i[gifts_i['TripId'] == gifts_i_trip_last_index]
-            gifts_south_w_last = pd.concat([gifts_south, gifts_i_trip_last])
-
-            # recalculate south equalibirium
-            gifts_i_trip_wo_last = gifts_i[gifts_i['TripId'] != gifts_i_trip_last_index]
-            gifts_south_trip_start = gifts_i_trip_wo_last['TripId'].iloc[-1] + 1
-            gifts_south_w_last = solve(gifts_south_w_last)
-            gifts_south_w_last.loc[:, 'TripId'] += gifts_south_trip_start
-            gift_trips_south_last = pd.concat([gifts_south_w_last, gifts_i_trip_wo_last])
-            score_south_last = weighted_reindeer_weariness(gift_trips_south_last)
-            print 'score after dropping last cluster trip', score_south_last
-            if score_i_last < score_south_last:
-                print 'last trip stays in cluster'
-                gifts_cluster.append(gifts_i)
-            else:
-                print 'last trip goes to south'
-                gifts_cluster.append(gifts_i_trip_wo_last)
-                gifts_south = gifts_south_w_last
-    gift_trips = pd.concat([gifts_south] + gifts_cluster)
-
-    print '*****************************'
-    print '*****************************'
-    print '*****************************'
-    print(weighted_reindeer_weariness(gift_trips))
-    print '*****************************'
-    print '*****************************'
-    print '*****************************'
-
-# print gift_trips
+gifts_trip = pd.merge(gifts_trip, gifts, on='GiftId')
+print gifts_trip
+print(weighted_reindeer_weariness(gifts_trip))
+gifts_trip = trips_optimize_v4(gifts_trip, 9, 4, 100)
+print gifts_trip
+print(weighted_reindeer_weariness(gifts_trip))
 
 print 'writing results to file'
-gift_trips = np.array(gift_trips)
-gift_trips = gift_trips[:, [0, -1]]
+gift_trips = np.array(gifts_trip)
+gift_trips = gift_trips[:, [1, 0]]
 gift_trips = pd.DataFrame(gift_trips)
 gift_trips.columns = ['GiftId', 'TripId']
 
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-# gift_trips.to_csv('cluster_continents_trips_batch_81.csv')
-
-# Basecase: 144525525772.0
-# Resolution 10 clustering: 34230724056.0
-# Resolution 5 clustering with ordering by latitude: 17723267396.9
-# resolution_latitude = 45; resolution_longitude = 1, clustering with ordering by latitude: 13227163205.6
-# resolution_longitude = 0.5, clustering with ordering by latitude: 12787535216.9
-# resolution_longitude = 0.1, clustering with ordering by latitude: 12674006549.1
-# resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3: 12671850614.7
-# resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4: 12669475033.6
-# resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4, 5: 12667518270.7
-# resolution_longitude = 0.1, clustering with ordering by latitude, batch = 3, 4, 5; 5 iterations: 12666394933.7
-
-# V2: longitude ordering
-# ordering by latitude, batch = 3, 4, 5; 2 iterations: 12663733540.7
-# ordering by latitude, batch = 5; iterative, fililing: 12664637799.4
-# ordering by latitude, fililing: 12668167971.9
-# ordering by latitude, batch = 5, 6; iterative, fililing: 12663055569.6
-
-# V3 North / South clustering
-# cluster north + south before optimization: 12595133701.3
-#  cluster north + south, batch = 5 optimization: 12575675485.4
-#  cluster north + south, batch = 6 optimization:
-
-# V3.1 continent clustering:
-# cluster north + south, removed DBSCAN outliers to south, batch = 5 optimization: 12537678107.5
-# cluster north + south, removed DBSCAN outliers to south, batch = 6 optimization: 12536291165.9
-# {'min_samples': 1250, 'eps': 16}, batch = 5 optimization: 12516053337.6
-# {'min_samples': 1250, 'eps': 16}, batch = 7 optimization: 12513554845.5
-# {'min_samples': 1250, 'eps': 16}, batch = 7 optimization, added merkov [batch, 2*batch]:
+gift_trips.to_csv('opt_shooteyes_template.csv')
