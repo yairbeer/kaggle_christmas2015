@@ -281,7 +281,6 @@ def k_change_optimize_dynamic(trip_gifts, k_changes, opt_iterations):
     :param batch_gifts: free parameters for optimizing, last point is static
     :return: optimized batch without start
     """
-    print trip_gifts
     trip_num = trip_gifts['TripId'].iloc[1]
     n_trip = trip_gifts.shape[0]
     trip_index = list(trip_gifts.index)
@@ -329,7 +328,6 @@ def k_change_optimize_dynamic(trip_gifts, k_changes, opt_iterations):
     opt_trip = trip_gifts.iloc[best_perm]
     # print 'After optimization %f' % weighted_sub_trip_length(best_batch[['Latitude', 'Longitude']],
     #                                                          weights, start, stop)
-    print trip_gifts
     if (best_metric - base_metric) < 0:
         print 'weariness gain: %f' % (best_metric - base_metric)
     return opt_trip
