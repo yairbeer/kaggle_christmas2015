@@ -293,9 +293,6 @@ def k_change_optimize_dynamic(trip_gifts, k_changes, opt_iterations):
     haver_mat = np.ones((n_trip, n_trip))
     for i in range(haver_mat.shape[0]):
         for j in range(haver_mat.shape[0]):
-            if trip_num == 82:
-                print list(trip_gifts.loc[trip_index[i], ['Latitude', 'Longitude']]), \
-                    list(trip_gifts.loc[trip_index[j], ['Latitude', 'Longitude']])
             if i != j:
                 haver_mat[i, j] = haversine(list(trip_gifts.loc[trip_index[i], ['Latitude', 'Longitude']]),
                                             list(trip_gifts.loc[trip_index[j], ['Latitude', 'Longitude']]))
