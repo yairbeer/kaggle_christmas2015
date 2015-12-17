@@ -171,7 +171,7 @@ def single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations):
     cur_trip = cur_trip.iloc[:-1]
     cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
     cur_improve = cur_trip_init_goal - cur_trip_final_goal
-    print 'iteration improve:', cur_improve
+    # print 'iteration improve:', cur_improve
     return cur_trip
 
 
@@ -295,6 +295,23 @@ def weighted_sub_trip_length_dynamic(stops, weights, haversine_matrix):
     return dist
 
 
+def weighted_sub_trip_length_v2(stops, weights):
+    """
+    :param stops: list of index places to put presents including end point
+    :param weights: weights of all the presents in the batch including end point
+    :return: metric score
+    """
+
+    tmp_weights = list(weights)
+
+    dist = 0
+    prev_weight = sum(tmp_weights) - tmp_weights[0]
+    for i in range(1, len(stops)):
+        dist += haversine(stops[i-1], stops[i]) * prev_weight
+        prev_weight = prev_weight - tmp_weights[i]
+    return dist
+
+
 def self_penalty(trip_gifts):
     """
     optimize a single batch. need to add sleigh weight
@@ -341,6 +358,54 @@ def self_penalty(trip_gifts):
     print trip_gifts['Self_penalty']
     return trip_gifts
 
+
+def cross_penalty_right(trip_gifts_add, trip_gifts_target):
+    """
+    optimize a single batch. need to add sleigh weight
+    :param trip_gifts: free parameters for optimizing, first & last point is static
+    :return: optimized batch without start
+    """
+    north_trip_start = pd.DataFrame([[-1, 90, 0, 0, 0, 0, 0, 0]],
+                                    columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId", 'Left_penalty',
+                                             'Self_penalty', 'Right_penalty'])
+    north_trip_end = pd.DataFrame([[-2, 90, 0, 10, 0, 0, 0, 0]],
+                                  columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId", 'Left_penalty',
+                                           'Self_penalty', 'Right_penalty'])
+    trip_gifts_target = trip_gifts_target.sort('Latitude', ascending=False)
+    trip_gifts_target = single_trip_optimize(trip_gifts_target, 6, 0, 0)
+    trip_gifts_target = pd.concat([north_trip_start, trip_gifts_target, north_trip_end])
+    print trip_gifts_target.shape
+    n_trip_add = trip_gifts_add.shape[0]
+    trip_index = list(trip_gifts_add.index)
+    trip_index[0] = -1
+    trip_index[-1] = -2
+    trip_gifts_add.index = trip_index
+
+    gifts_weights = list(trip_gifts_target['Weight'])
+    metric_without = weighted_sub_trip_length_v2(list(trip_gifts_target.loc[:, ["Latitude", "Longitude"]].values),
+                                                      gifts_weights)
+
+    trip_gifts_target = trip_gifts_target.iloc[1:-1]
+
+    for i_penalty in range(n_trip_add):
+        trip_gifts_target_tmp = trip_gifts_target.copy()
+        added_stop = trip_gifts_add.iloc[[i_penalty]]
+        added_stop['Weight'].iloc[0] = 0
+        trip_gifts_target_tmp = pd.concat([trip_gifts_target_tmp, added_stop])
+        trip_gifts_target_tmp = trip_gifts_target_tmp.sort('Latitude', ascending=False)
+        trip_gifts_target_tmp = single_trip_optimize(trip_gifts_target_tmp, 6, 0, 0)
+        trip_gifts_target_tmp = pd.concat([north_trip_start, trip_gifts_target_tmp, north_trip_end])
+        print trip_gifts_target_tmp.shape
+        gifts_weights = list(trip_gifts_target_tmp['Weight'])
+
+        metric_with = weighted_sub_trip_length_v2(list(trip_gifts_target_tmp.loc[:, ["Latitude", "Longitude"]].values),
+                                                  gifts_weights)
+        trip_gifts_add['Right_penalty'].iloc[i_penalty] = metric_with - metric_without
+
+    trip_gifts_add = trip_gifts_add.iloc[1: -1]
+    print trip_gifts_add['Right_penalty']
+    return trip_gifts_add
+
 """
 Main program
 """
@@ -355,9 +420,21 @@ print gifts_trip
 
 # calculate self penalty
 trips = gifts_trip['TripId'].unique()
-opt_trip = []
 
+trip_before_right = []
 # print gift_trips
+print 'calculating right penalty'
+for i in range(len(trips[: -1])):
+    print 'trip num is %d' % i
+    # single iteration per trip
+    # Working from the start
+    cur_trip = gifts_trip[gifts_trip['TripId'] == trips[i]]
+    next_trip = gifts_trip[gifts_trip['TripId'] == trips[i + 1]]
+    cur_trip = cross_penalty_right(cur_trip, next_trip)
+    trip_before_right.append(cur_trip)
+trip_before_right = pd.concat(trip_before_right)
+
+trip_before_center = []
 print 'calculating self penalty'
 for trip_i in trips:
     print 'trip num is %d' % trip_i
@@ -365,20 +442,21 @@ for trip_i in trips:
     # Working from the start
     cur_trip = gifts_trip[gifts_trip['TripId'] == trip_i]
     cur_trip = self_penalty(cur_trip)
-    opt_trip.append(cur_trip)
-opt_trip = pd.concat(opt_trip)
+    trip_before_center.append(cur_trip)
+trip_before_center = pd.concat(trip_before_center)
 
-# calculate neighbor penalty
+trip_before_center.to_csv('penalties_right_center.csv')
+
 # if neighbor_penalty_j < self_penalty_j and trip not full -> fill trip
 # if self_penalty_i + self_penalty_j > neighbor_penalty_i + neighbor_penalty_j -> switch trips
 
-print 'writing results to file'
-gift_trips = np.array(gifts_trip)
-gift_trips = gift_trips[:, [0, 3]]
-gift_trips = pd.DataFrame(gift_trips)
-gift_trips.columns = ['GiftId', 'TripId']
-
-gift_trips = gift_trips.astype('int32')
-gift_trips.index = gift_trips["GiftId"]
-del gift_trips["GiftId"]
-# gift_trips.to_csv('opt_shooteyes_template.csv')
+# print 'writing results to file'
+# gift_trips = np.array(gifts_trip)
+# gift_trips = gift_trips[:, [0, 3]]
+# gift_trips = pd.DataFrame(gift_trips)
+# gift_trips.columns = ['GiftId', 'TripId']
+#
+# gift_trips = gift_trips.astype('int32')
+# gift_trips.index = gift_trips["GiftId"]
+# del gift_trips["GiftId"]
+# # gift_trips.to_csv('opt_shooteyes_template.csv')
