@@ -316,7 +316,8 @@ print(weighted_reindeer_weariness(gifts_trip))
 
 # calculate self penalty
 # calculate neighbor penalty
-# switch if self_penalty_i + self_penalty_j > neighbor_penalty_i + neighbor_penalty_j
+# if neighbor_penalty_j < self_penalty_j and trip not full -> fill trip
+# if self_penalty_i + self_penalty_j > neighbor_penalty_i + neighbor_penalty_j -> switch trips
 
 print 'writing results to file'
 gift_trips = np.array(gifts_trip)
