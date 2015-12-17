@@ -225,7 +225,7 @@ def batch_optimize_dynamic(batch_gifts, batch_weights):
 def k_change_optimize_dynamic(trip_gifts, k_changes, opt_iterations):
     """
     optimize a single batch. need to add sleigh weight
-    :param batch_gifts: free parameters for optimizing, last point is static
+    :param trip_gifts: free parameters for optimizing, first & last point is static
     :return: optimized batch without start
     """
     trip_num = trip_gifts['TripId'].iloc[1]
@@ -306,7 +306,7 @@ print(weighted_reindeer_weariness(gifts_trip))
 
 print 'writing results to file'
 gift_trips = np.array(gifts_trip)
-gift_trips = gift_trips[:, [1, 0]]
+gift_trips = gift_trips[:, [0, 3]]
 gift_trips = pd.DataFrame(gift_trips)
 gift_trips.columns = ['GiftId', 'TripId']
 
