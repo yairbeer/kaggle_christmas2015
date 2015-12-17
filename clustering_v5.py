@@ -492,7 +492,7 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-# gift_trips.to_csv('cluster_continents_trips_batch_81.csv')
+gift_trips.to_csv('cluster_continents_trips_batch_81.csv')
 
 # Basecase: 144525525772.0
 # Resolution 10 clustering: 34230724056.0
