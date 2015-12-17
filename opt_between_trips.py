@@ -115,69 +115,63 @@ def trips_optimize_v4(gift_trips, batch_size, k_changes, changes_iterations):
 
 
 def single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations):
-    if cur_trip.shape[0] > batch_size:
-        cur_improve = 1
-        trip_i = cur_trip['TripId'].iloc[1]
-        while cur_improve > 0:
-            cur_trip_init_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
-            print 'trip %d before optimization has %f weighted reindeer weariness' % \
-                  (trip_i, weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight'])))
-            # print cur_trip
-            # print cur_trip.shape
-            # add first and last stop in the north pole
-            north_trip_start = pd.DataFrame([[-1, 90, 0, 0, trip_i]],
-                                            columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId"])
-            north_trip_end = pd.DataFrame([[-2, 90, 0, 10, trip_i]],
-                                          columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId"])
-            cur_trip = pd.concat([north_trip_start, cur_trip, north_trip_end])
-            if k_changes > 0:
-                cur_trip = k_change_optimize_dynamic(cur_trip, k_changes, changes_iterations)
-            single_trip = []
-            for batch_i in range(1, cur_trip.shape[0], batch_size):
-                if (batch_i + batch_size) < cur_trip.shape[0]:
-                    # print 'norm batch'
-                    # print cur_trip.iloc[batch_i - 1: batch_i + batch_size]
-                    optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size],
-                                                            cur_trip['Weight'].iloc[batch_i - 1:])
-                else:
-                    if cur_trip.iloc[batch_i - 1:].shape[0] > 3:
-                        # print 'last batch opt'
-                        # print cur_trip.iloc[batch_i - 1:]
-                        optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1:],
-                                                                cur_trip['Weight'].iloc[batch_i - 1:])
-                    else:
-                        # print 'last batch not opt'
-                        # print cur_trip.iloc[batch_i:]
-                        optimize_batch = cur_trip.iloc[batch_i:]
-                single_trip.append(optimize_batch)
-            cur_trip = pd.concat(single_trip)
+    cur_trip_init_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
+    # print cur_trip
+    # print cur_trip.shape
+    # add first and last stop in the north pole
+    north_trip_start = pd.DataFrame([[-1, 90, 0, 0, 0]],
+                                    columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId"])
+    north_trip_end = pd.DataFrame([[-2, 90, 0, 10, 0]],
+                                  columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId"])
+    cur_trip = pd.concat([north_trip_start, cur_trip, north_trip_end])
+    if k_changes > 0:
+        cur_trip = k_change_optimize_dynamic(cur_trip, k_changes, changes_iterations)
+    single_trip = []
+    for batch_i in range(1, cur_trip.shape[0], batch_size):
+        if (batch_i + batch_size) < cur_trip.shape[0]:
+            # print 'norm batch'
+            # print cur_trip.iloc[batch_i - 1: batch_i + batch_size]
+            optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size],
+                                                    cur_trip['Weight'].iloc[batch_i - 1:])
+        else:
+            if cur_trip.iloc[batch_i - 1:].shape[0] > 3:
+                # print 'last batch opt'
+                # print cur_trip.iloc[batch_i - 1:]
+                optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1:],
+                                                        cur_trip['Weight'].iloc[batch_i - 1:])
+            else:
+                # print 'last batch not opt'
+                # print cur_trip.iloc[batch_i:]
+                optimize_batch = cur_trip.iloc[batch_i:]
+        single_trip.append(optimize_batch)
+    cur_trip = pd.concat(single_trip)
 
-            # working from the middle of the  1st batch
-            single_trip = [cur_trip.iloc[:(batch_size/2)]]
-            cur_trip = cur_trip.iloc[((batch_size/2) - 1):]
-            for batch_i in range(1, cur_trip.shape[0], batch_size):
-                if (batch_i + batch_size) < cur_trip.shape[0]:
-                    # print 'norm batch'
-                    # print cur_trip.iloc[batch_i - 1: batch_i + batch_size]
-                    optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size],
-                                                            cur_trip['Weight'].iloc[batch_i - 1:])
-                else:
-                    if cur_trip.iloc[batch_i - 1:].shape[0] > 3:
-                        # print 'last batch opt'
-                        # print cur_trip.iloc[batch_i - 1:]
-                        optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1:],
-                                                                cur_trip['Weight'].iloc[batch_i - 1:])
-                    else:
-                        # print 'last batch not opt'
-                        # print cur_trip.iloc[batch_i:]
-                        optimize_batch = cur_trip.iloc[batch_i:]
-                single_trip.append(optimize_batch)
-            # remove the return to the north pole
-            cur_trip = pd.concat(single_trip)
-            cur_trip = cur_trip.iloc[:-1]
-            cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
-            cur_improve = cur_trip_init_goal - cur_trip_final_goal
-            print 'iteration improve:', cur_improve
+    # working from the middle of the  1st batch
+    single_trip = [cur_trip.iloc[:(batch_size/2)]]
+    cur_trip = cur_trip.iloc[((batch_size/2) - 1):]
+    for batch_i in range(1, cur_trip.shape[0], batch_size):
+        if (batch_i + batch_size) < cur_trip.shape[0]:
+            # print 'norm batch'
+            # print cur_trip.iloc[batch_i - 1: batch_i + batch_size]
+            optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size],
+                                                    cur_trip['Weight'].iloc[batch_i - 1:])
+        else:
+            if cur_trip.iloc[batch_i - 1:].shape[0] > 3:
+                # print 'last batch opt'
+                # print cur_trip.iloc[batch_i - 1:]
+                optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1:],
+                                                        cur_trip['Weight'].iloc[batch_i - 1:])
+            else:
+                # print 'last batch not opt'
+                # print cur_trip.iloc[batch_i:]
+                optimize_batch = cur_trip.iloc[batch_i:]
+        single_trip.append(optimize_batch)
+    # remove the return to the north pole
+    cur_trip = pd.concat(single_trip)
+    cur_trip = cur_trip.iloc[:-1]
+    cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
+    cur_improve = cur_trip_init_goal - cur_trip_final_goal
+    print 'iteration improve:', cur_improve
     return cur_trip
 
 
@@ -301,6 +295,52 @@ def weighted_sub_trip_length_dynamic(stops, weights, haversine_matrix):
     return dist
 
 
+def self_penalty(trip_gifts):
+    """
+    optimize a single batch. need to add sleigh weight
+    :param trip_gifts: free parameters for optimizing, first & last point is static
+    :return: optimized batch without start
+    """
+    north_trip_start = pd.DataFrame([[-1, 90, 0, 0, 0, 0, 0, 0]],
+                                    columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId", 'Left_penalty',
+                                             'Self_penalty', 'Right_penalty'])
+    north_trip_end = pd.DataFrame([[-2, 90, 0, 10, 0, 0, 0, 0]],
+                                  columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId", 'Left_penalty',
+                                           'Self_penalty', 'Right_penalty'])
+    trip_gifts = pd.concat([north_trip_start, trip_gifts, north_trip_end])
+    n_trip = trip_gifts.shape[0]
+    trip_index = list(trip_gifts.index)
+    trip_index[0] = -1
+    trip_index[-1] = -2
+    trip_gifts.index = trip_index
+
+    # calculating all the edges
+    gifts_weights = list(trip_gifts['Weight'])
+    haver_mat = np.ones((n_trip, n_trip))
+    for i in range(haver_mat.shape[0]):
+        for j in range(haver_mat.shape[0]):
+            if i != j:
+                haver_mat[i, j] = haversine(list(trip_gifts.loc[trip_index[i], ['Latitude', 'Longitude']]),
+                                            list(trip_gifts.loc[trip_index[j], ['Latitude', 'Longitude']]))
+
+    for i_penalty in range(1, n_trip - 1):
+
+        trip_with = range(n_trip)
+        tmp_weights = list(gifts_weights)
+        tmp_weights[i_penalty] = 0
+        metric_with = weighted_sub_trip_length_dynamic(trip_with, tmp_weights, haver_mat)
+
+        trip_without = range(n_trip)
+        trip_without.pop(i_penalty)
+        tmp_weights = list(gifts_weights)
+        metric_without = weighted_sub_trip_length_dynamic(trip_without, tmp_weights, haver_mat)
+
+        trip_gifts['Self_penalty'].iloc[i_penalty] = metric_with - metric_without
+
+    trip_gifts = trip_gifts.iloc[1: -1]
+    print trip_gifts['Self_penalty']
+    return trip_gifts
+
 """
 Main program
 """
@@ -312,9 +352,22 @@ gifts_trip['Left_penalty'] = np.zeros(gifts_trip.shape[0])
 gifts_trip['Self_penalty'] = np.zeros(gifts_trip.shape[0])
 gifts_trip['Right_penalty'] = np.zeros(gifts_trip.shape[0])
 print gifts_trip
-print(weighted_reindeer_weariness(gifts_trip))
 
 # calculate self penalty
+trips = gifts_trip['TripId'].unique()
+opt_trip = []
+
+# print gift_trips
+print 'calculating self penalty'
+for trip_i in trips:
+    print 'trip num is %d' % trip_i
+    # single iteration per trip
+    # Working from the start
+    cur_trip = gifts_trip[gifts_trip['TripId'] == trip_i]
+    cur_trip = self_penalty(cur_trip)
+    opt_trip.append(cur_trip)
+opt_trip = pd.concat(opt_trip)
+
 # calculate neighbor penalty
 # if neighbor_penalty_j < self_penalty_j and trip not full -> fill trip
 # if self_penalty_i + self_penalty_j > neighbor_penalty_i + neighbor_penalty_j -> switch trips
