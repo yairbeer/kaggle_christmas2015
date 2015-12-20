@@ -136,7 +136,7 @@ def single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations):
             optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1: batch_i + batch_size],
                                                     cur_trip['Weight'].iloc[batch_i - 1:])
         else:
-            if cur_trip.iloc[batch_i - 1:].shape[0] > 3:
+            if cur_trip.iloc[batch_i - 1:].shape[0] > 4:
                 # print 'last batch opt'
                 # print cur_trip.iloc[batch_i - 1:]
                 optimize_batch = batch_optimize_dynamic(cur_trip.iloc[batch_i - 1:],
@@ -379,7 +379,7 @@ def trips_orginizer(gifts, weight_limit):
                 cur_weight += gifts['Weight'].loc[cur_index]
             else:
                 # fill up trip
-                gifts, cur_weight = fill_trip(gifts, cur_weight, cur_trip, gifts.loc[cur_index], 1.0, weight_limit)
+                gifts, cur_weight = fill_trip(gifts, cur_weight, cur_trip, gifts.loc[cur_index], 0.1, weight_limit)
                 # add last weight
                 # print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
                 cur_weight = 0
@@ -457,3 +457,8 @@ for params in ParameterGrid(param_grid):
 # gift_trips.index = gift_trips["GiftId"]
 # del gift_trips["GiftId"]
 # # gift_trips.to_csv('opt_shooteyes_template.csv')
+
+# Weight limit 990: 12660878182.2
+# Weight limit 970: 12668525503.7
+# Weight limit 950: 12677318796.2
+# Weight limit 930:
