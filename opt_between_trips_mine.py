@@ -462,6 +462,7 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, 
                     best_trip_to = cur_trip_to.copy(deep=True)
                     best_trip_from = cur_trip_from.copy(deep=True)
                     best_weight_to = np.sum(np.array(cur_trip_to['Weight']))
+                    break
 
     if (best_metric - base_metric) < 0:
         print 'weariness gain: %f' % (best_metric - base_metric)
@@ -483,7 +484,7 @@ for params in ParameterGrid(param_grid):
     # print gifts
 
     trips = gifts['TripId'].unique()
-    iterations = 10
+    iterations = 50
     for it in range(iterations):
         opt_trip = []
         # print gift_trips
@@ -493,7 +494,7 @@ for params in ParameterGrid(param_grid):
             cur_trip_from = gifts[gifts['TripId'] == trips[i]]
             cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
 
-            if not i % 20:
+            if (i % 20) < 2:
                 print 'trip %d optimization' % i
             cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
             opt_trip.append(cur_trip_from)
@@ -506,7 +507,7 @@ for params in ParameterGrid(param_grid):
             cur_trip_from = gifts[gifts['TripId'] == trips[i]]
             cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
 
-            if not i % 20:
+            if (i % 20) < 2:
                 print 'trip %d optimization' % i
             cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
             opt_trip.append(cur_trip_from)
