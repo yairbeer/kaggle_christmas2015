@@ -431,7 +431,7 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, 
 
     # greedy
     for change_iter in range(n_tries):
-        print 'iteration %d' % change_iter
+        # print 'iteration %d' % change_iter
         if best_weight_to > (trip_max_weight - max_items):
             break
 
@@ -448,19 +448,20 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, 
 
         if np.sum(np.array(cur_trip_from['Weight'].iloc[try_to])) < max_weight:
             cur_trip_to = pd.concat([cur_trip_to, cur_trip_from.iloc[try_to]])
-            cur_trip_from = cur_trip_from.iloc[try_from]
+            if np.sum(np.array(cur_trip_to['Weight'])) < trip_max_weight:
+                cur_trip_from = cur_trip_from.iloc[try_from]
 
-            cur_trip_to = cur_trip_to.sort('Latitude', ascending=False)
-            cur_trip_from = cur_trip_from.sort('Latitude', ascending=False)
+                cur_trip_to = cur_trip_to.sort('Latitude', ascending=False)
+                cur_trip_from = cur_trip_from.sort('Latitude', ascending=False)
 
-            cur_trip_to, cur_metric_to = single_trip_optimize(cur_trip_to, 5, 0, 5)
-            cur_trip_from, cur_metric_from = single_trip_optimize(cur_trip_from, 5, 0, 5)
+                cur_trip_to, cur_metric_to = single_trip_optimize(cur_trip_to, 5, 0, 5)
+                cur_trip_from, cur_metric_from = single_trip_optimize(cur_trip_from, 5, 0, 5)
 
-            if (cur_metric_to + cur_metric_from) < best_metric:
-                best_metric = cur_metric_to + cur_metric_from
-                best_trip_to = cur_trip_to.copy(deep=True)
-                best_trip_from = cur_trip_from.copy(deep=True)
-                best_weight_to = np.sum(np.array(cur_trip_to['Weight']))
+                if (cur_metric_to + cur_metric_from) < best_metric:
+                    best_metric = cur_metric_to + cur_metric_from
+                    best_trip_to = cur_trip_to.copy(deep=True)
+                    best_trip_from = cur_trip_from.copy(deep=True)
+                    best_weight_to = np.sum(np.array(cur_trip_to['Weight']))
 
     if (best_metric - base_metric) < 0:
         print 'weariness gain: %f' % (best_metric - base_metric)
@@ -482,37 +483,39 @@ for params in ParameterGrid(param_grid):
     # print gifts
 
     trips = gifts['TripId'].unique()
-    opt_trip = []
-    # print gift_trips
-    for i in range(0, len(trips) - 1, 2):
-        # single iteration per trip
-        # Working from the start
-        cur_trip_from = gifts[gifts['TripId'] == trips[i]]
-        cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
+    iterations = 10
+    for it in range(iterations):
+        opt_trip = []
+        # print gift_trips
+        for i in range(0, len(trips) - 1, 2):
+            # single iteration per trip
+            # Working from the start
+            cur_trip_from = gifts[gifts['TripId'] == trips[i]]
+            cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
 
-        if not i % 20:
-            print 'trip %d optimization' % i
-        cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-        opt_trip.append(cur_trip_from)
-        opt_trip.append(cur_trip_to)
-    trips = pd.concat(opt_trip)
+            if not i % 20:
+                print 'trip %d optimization' % i
+            cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
+            opt_trip.append(cur_trip_from)
+            opt_trip.append(cur_trip_to)
+        trips = pd.concat(opt_trip)
 
-    for i in range(1, len(trips), 2):
-        # single iteration per trip
-        # Working from the start
-        cur_trip_from = gifts[gifts['TripId'] == trips[i]]
-        cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
+        for i in range(1, len(trips), 2):
+            # single iteration per trip
+            # Working from the start
+            cur_trip_from = gifts[gifts['TripId'] == trips[i]]
+            cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
 
-        if not i % 20:
-            print 'trip %d optimization' % i
-        cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-        opt_trip.append(cur_trip_from)
-        opt_trip.append(cur_trip_to)
-    trips = pd.concat(opt_trip)
+            if not i % 20:
+                print 'trip %d optimization' % i
+            cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
+            opt_trip.append(cur_trip_from)
+            opt_trip.append(cur_trip_to)
+        trips = pd.concat(opt_trip)
 
-    print(weighted_reindeer_weariness(trips))
+        print(weighted_reindeer_weariness(trips))
 
-    gifts.to_csv('opt_v1_iteration_1.csv')
+        gifts.to_csv('opt_v1_iterations.csv')
 # # calculate self penalty
 # trips = gifts['TripId'].unique()
 #
