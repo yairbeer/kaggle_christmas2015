@@ -468,7 +468,6 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, 
 Main program
 """
 # read files
-# read files
 gifts_trip = pd.read_csv('opt_shooteyes_template.csv')
 gifts = pd.read_csv('gifts.csv')
 gifts = pd.merge(gifts_trip, gifts, on='GiftId')

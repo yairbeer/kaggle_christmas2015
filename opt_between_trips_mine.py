@@ -478,7 +478,9 @@ for params in ParameterGrid(param_grid):
     print 'orginizing trips with %d weight limit' % params['max_weight']
     gifts = trips_orginizer(gifts, params['max_weight'])
     print 'optimizing tracks'
-    # gifts = trips_optimize_v4(gifts, 4, 0, 50)
+    """
+    Try to split trips
+    """
     gifts['Self_penalty'] = np.zeros(gifts.shape[0])
     print(weighted_reindeer_weariness(gifts))
     # print gifts
