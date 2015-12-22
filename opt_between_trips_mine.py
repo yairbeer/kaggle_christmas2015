@@ -383,7 +383,6 @@ def trips_orginizer(gifts, weight_limit):
             cur_trip += 1
             gifts['TripId'].at[cur_index] = cur_trip
             cur_weight += gifts['Weight'].loc[cur_index]
-    trips = []
     # print 'sorting'
     for trip in gifts['TripId'].unique():
         cur_trip = gifts[gifts['TripId'] == trip]
@@ -411,7 +410,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     return gifts, cur_weight
 
 
-def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=2, max_weight=60, trip_max_weight=990):
+def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, max_weight=60, trip_max_weight=990):
     """
     Optimizing between 2 trips
     """
@@ -471,7 +470,7 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=2, 
 Main program
 """
 # read files
-param_grid = {'max_weight': [940]}
+param_grid = {'max_weight': [950]}
 for params in ParameterGrid(param_grid):
     gifts = pd.read_csv('gifts.csv')
     print 'orginizing trips with %d weight limit' % params['max_weight']
@@ -482,15 +481,14 @@ for params in ParameterGrid(param_grid):
     print(weighted_reindeer_weariness(gifts))
     # print gifts
 
+    # Greedy
     trips = gifts['TripId'].unique()
-    print range(0, len(trips), 2)
-    print gifts[gifts['TripId'] == trips[1516]]
     print 'number of trips is: ', len(trips)
     iterations = 50
     for it in range(iterations):
         opt_trip = []
         # print gift_trips
-        for i in range(0, len(trips) - 2, 2):
+        for i in range(1, len(trips), 2):
             # single iteration per trip
             # Working from the start
             cur_trip_from = gifts[gifts['TripId'] == trips[i]]
@@ -502,8 +500,8 @@ for params in ParameterGrid(param_grid):
             opt_trip.append(cur_trip_from)
             opt_trip.append(cur_trip_to)
         trips = pd.concat(opt_trip)
-
-        for i in range(1, len(trips) - 2, 2):
+        opt_trip = []
+        for i in range(2, len(trips), 2):
             # single iteration per trip
             # Working from the start
             cur_trip_from = gifts[gifts['TripId'] == trips[i]]
