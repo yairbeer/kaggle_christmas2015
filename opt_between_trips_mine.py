@@ -378,7 +378,7 @@ def trips_orginizer(gifts, weight_limit):
             cur_weight += gifts['Weight'].loc[cur_index]
         else:
             # fill up trip
-            gifts, cur_weight = fill_trip(gifts, cur_weight, cur_trip, gifts.loc[cur_index], 0.2)
+            gifts, cur_weight = fill_trip(gifts, cur_weight, cur_trip, gifts.loc[cur_index], 0.2, weight_limit)
             # add last weight
             # print 'For trip %d, the total weight was %f' % (cur_trip, cur_weight)
             cur_weight = 0
@@ -472,7 +472,7 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, 
 Main program
 """
 # read files
-param_grid = {'max_weight': [990]}
+param_grid = {'max_weight': [950]}
 for params in ParameterGrid(param_grid):
     gifts = pd.read_csv('gifts.csv')
     print 'orginizing trips with %d weight limit' % params['max_weight']
@@ -490,9 +490,19 @@ for params in ParameterGrid(param_grid):
     print 'number of trips is: ', len(trips)
     iterations = 50
     for it in range(iterations):
-        opt_trip = []
         # print gift_trips
-        for i in range(1, len(trips), 2):
+        for i in range(1, len(trips) - 2, 100):
+            # single iteration per trip
+            # Working from the start
+            cur_trip_from = gifts[gifts['TripId'] == trips[i]]
+            cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
+            if (i % 20) < 2:
+                print 'trip %d optimization' % i
+            cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
+            gifts['TripId'].loc[cur_trip_from.index] = trips[i]
+            gifts['TripId'].loc[cur_trip_to.index] = trips[i - 1]
+
+        for i in range(2, len(trips) - 2, 2):
             # single iteration per trip
             # Working from the start
             cur_trip_from = gifts[gifts['TripId'] == trips[i]]
@@ -501,22 +511,8 @@ for params in ParameterGrid(param_grid):
             if (i % 20) < 2:
                 print 'trip %d optimization' % i
             cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-            opt_trip.append(cur_trip_from)
-            opt_trip.append(cur_trip_to)
-        trips = pd.concat(opt_trip)
-        opt_trip = []
-        for i in range(2, len(trips), 2):
-            # single iteration per trip
-            # Working from the start
-            cur_trip_from = gifts[gifts['TripId'] == trips[i]]
-            cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
-
-            if (i % 20) < 2:
-                print 'trip %d optimization' % i
-            cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-            opt_trip.append(cur_trip_from)
-            opt_trip.append(cur_trip_to)
-        trips = pd.concat(opt_trip)
+            gifts['TripId'].loc[cur_trip_from.index] = trips[i]
+            gifts['TripId'].loc[cur_trip_to.index] = trips[i - 1]
 
         print(weighted_reindeer_weariness(trips))
 

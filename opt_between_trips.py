@@ -483,9 +483,19 @@ trips = gifts['TripId'].unique()
 print 'number of trips is: ', len(trips)
 iterations = 10
 for it in range(iterations):
-    opt_trip = []
     # print gift_trips
-    for i in range(1, len(trips), 2):
+    for i in range(1, len(trips) - 2, 2):
+        # single iteration per trip
+        # Working from the start
+        cur_trip_from = gifts[gifts['TripId'] == trips[i]]
+        cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
+        if (i % 20) < 2:
+            print 'trip %d optimization' % i
+        cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
+        gifts['TripId'].loc[cur_trip_from.index] = trips[i]
+        gifts['TripId'].loc[cur_trip_to.index] = trips[i - 1]
+
+    for i in range(2, len(trips) - 2, 2):
         # single iteration per trip
         # Working from the start
         cur_trip_from = gifts[gifts['TripId'] == trips[i]]
@@ -494,29 +504,15 @@ for it in range(iterations):
         if (i % 20) < 2:
             print 'trip %d optimization' % i
         cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-        opt_trip.append(cur_trip_from)
-        opt_trip.append(cur_trip_to)
-    trips = pd.concat(opt_trip)
-    opt_trip = []
-    for i in range(2, len(trips), 2):
-        # single iteration per trip
-        # Working from the start
-        cur_trip_from = gifts[gifts['TripId'] == trips[i]]
-        cur_trip_to = gifts[gifts['TripId'] == trips[i - 1]]
+        gifts['TripId'].loc[cur_trip_from.index] = trips[i]
+        gifts['TripId'].loc[cur_trip_to.index] = trips[i - 1]
 
-        if (i % 20) < 2:
-            print 'trip %d optimization' % i
-        cur_trip_from, cur_trip_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-        opt_trip.append(cur_trip_from)
-        opt_trip.append(cur_trip_to)
-    trips = pd.concat(opt_trip)
+    print(weighted_reindeer_weariness(gifts))
 
-    print(weighted_reindeer_weariness(trips))
-
-    gifts.to_csv('shoot_opt_v1_iterations.csv')
+    gifts.to_csv('opt_v1_iterations.csv')
 
 gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
-gifts = trips_optimize_v4(gifts, 9, 0, 1)
+gifts = trips_optimize_v4(gifts, 5, 0, 1)
 
 print 'writing results to file'
 gift_trips = np.array(gifts_trip)
