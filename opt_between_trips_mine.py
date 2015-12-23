@@ -422,8 +422,8 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, 
     gifts_from = gifts_from.sort_values('Latitude', ascending=False)
 
     best_weight_to = np.sum(np.array(gifts_to['Weight']))
-    best_trip_to, base_metric_to = single_trip_optimize(gifts_to, 5, 0, 5)
-    best_trip_from, base_metric_from = single_trip_optimize(gifts_from, 5, 0, 5)
+    best_trip_to, base_metric_to = single_trip_optimize(gifts_to, 7, 0, 5)
+    best_trip_from, base_metric_from = single_trip_optimize(gifts_from, 7, 0, 5)
 
     best_metric = base_metric = base_metric_to + base_metric_from
 
@@ -454,8 +454,8 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, 
                 cur_trip_to = cur_trip_to.sort_values('Latitude', ascending=False)
                 cur_trip_from = cur_trip_from.sort_values('Latitude', ascending=False)
 
-                cur_trip_to, cur_metric_to = single_trip_optimize(cur_trip_to, 5, 0, 5)
-                cur_trip_from, cur_metric_from = single_trip_optimize(cur_trip_from, 5, 0, 5)
+                cur_trip_to, cur_metric_to = single_trip_optimize(cur_trip_to, 7, 0, 5)
+                cur_trip_from, cur_metric_from = single_trip_optimize(cur_trip_from, 7, 0, 5)
 
                 if (cur_metric_to + cur_metric_from) < best_metric:
                     best_metric = cur_metric_to + cur_metric_from
