@@ -422,8 +422,8 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, 
     gifts_from = gifts_from.sort_values('Latitude', ascending=False)
 
     best_weight_to = np.sum(np.array(gifts_to['Weight']))
-    best_trip_to, base_metric_to = single_trip_optimize(gifts_to, 3, 0, 5)
-    best_trip_from, base_metric_from = single_trip_optimize(gifts_from, 3, 0, 5)
+    best_trip_to, base_metric_to = single_trip_optimize(gifts_to, 5, 0, 5)
+    best_trip_from, base_metric_from = single_trip_optimize(gifts_from, 5, 0, 5)
 
     best_metric = base_metric = base_metric_to + base_metric_from
 
@@ -486,7 +486,7 @@ for params in ParameterGrid(param_grid):
     # Greedy
     trips = list(gifts['TripId'].unique())
     print 'number of trips is: ', len(trips)
-    iterations = 50
+    iterations = 10
     for it in range(iterations):
         # print gift_trips
         for i in range(1, len(trips) - 2, 2):
@@ -496,11 +496,11 @@ for params in ParameterGrid(param_grid):
             cur_trip_to = gifts[gifts['TripId'] == trips[i]]
             if (i % 20) < 2:
                 print 'trip %d optimization' % i
+                print weighted_reindeer_weariness(gifts)
             cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
             gifts = gifts[gifts.TripId != trips[i]]
             gifts = gifts[gifts.TripId != trips[i - 1]]
             gifts = pd.concat([cur_trip_from_to, gifts])
-            print weighted_reindeer_weariness(gifts)
 
         for i in range(2, len(trips) - 2, 2):
             # single iteration per trip
@@ -509,11 +509,11 @@ for params in ParameterGrid(param_grid):
             cur_trip_to = gifts[gifts['TripId'] == trips[i]]
             if (i % 20) < 2:
                 print 'trip %d optimization' % i
+                print weighted_reindeer_weariness(gifts)
             cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
             gifts = gifts[gifts.TripId != trips[i]]
             gifts = gifts[gifts.TripId != trips[i - 1]]
             gifts = pd.concat([cur_trip_from_to, gifts])
-            print weighted_reindeer_weariness(gifts)
 
         print weighted_reindeer_weariness(gifts)
 
