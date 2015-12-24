@@ -63,12 +63,12 @@ def weighted_reindeer_weariness(all_trips):
     return dist
 
 # read files
-gifts_trip = pd.DataFrame.from_csv('opt_v1_iterations.csv')
+gifts_trip = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
 print gifts_trip
 print weighted_reindeer_weariness(gifts_trip)
 print 'writing results to file'
 gift_trips = np.array(gifts_trip)
-gift_trips = gift_trips[:, [0, 4]]
+gift_trips = gift_trips[:, [0, 3]]
 gift_trips = pd.DataFrame(gift_trips)
 gift_trips.columns = ['GiftId', 'TripId']
 

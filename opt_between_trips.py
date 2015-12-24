@@ -495,6 +495,7 @@ for it in range(iterations):
         gifts = gifts[gifts.TripId != trips[i]]
         gifts = gifts[gifts.TripId != trips[i - 1]]
         gifts = pd.concat([cur_trip_from_to, gifts])
+        gifts.to_csv('shoot_opt_v1_iterations.csv')
 
     for i in range(2, len(trips) - 2, 2):
         # single iteration per trip
