@@ -480,7 +480,7 @@ print 'greedy optimizing between tracks'
 # Greedy
 trips = list(gifts['TripId'].unique())
 print 'number of trips is: ', len(trips)
-iterations = 10
+iterations = 30
 for it in range(iterations):
     # print gift_trips
     for i in range(1, len(trips) - 2, 2):
@@ -508,6 +508,7 @@ for it in range(iterations):
         gifts = gifts[gifts.TripId != trips[i]]
         gifts = gifts[gifts.TripId != trips[i - 1]]
         gifts = pd.concat([cur_trip_from_to, gifts])
+        gifts.to_csv('shoot_opt_v1_iterations.csv')
 
 gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
 gifts = trips_optimize_v4(gifts, 9, 0, 1)
