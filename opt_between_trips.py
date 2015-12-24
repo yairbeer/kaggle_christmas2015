@@ -494,6 +494,7 @@ for it in range(iterations):
         if (i % 20) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
+            gifts.to_csv('shoot_opt_v1_iterations.csv')
         cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
         gifts = gifts[gifts.TripId != trips[i]]
         gifts = gifts[gifts.TripId != trips[i - 1]]
@@ -509,11 +510,11 @@ for it in range(iterations):
         if (i % 20) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
+            gifts.to_csv('shoot_opt_v1_iterations.csv')
         cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
         gifts = gifts[gifts.TripId != trips[i]]
         gifts = gifts[gifts.TripId != trips[i - 1]]
         gifts = pd.concat([cur_trip_from_to, gifts])
-        gifts.to_csv('shoot_opt_v1_iterations.csv')
 
 gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
 gifts = trips_optimize_v4(gifts, 9, 0, 1)
