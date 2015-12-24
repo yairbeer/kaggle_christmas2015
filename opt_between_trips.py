@@ -408,7 +408,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     return gifts, cur_weight
 
 
-def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, max_weight=60, trip_max_weight=990):
+def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=15, max_items=1, max_weight=90, trip_max_weight=990):
     """
     Optimizing between 2 trips
     """
@@ -467,10 +467,12 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=10, max_items=1, 
 Main program
 """
 # read files
-gifts_trip = pd.read_csv('opt_shooteyes_template.csv')
-gifts = pd.read_csv('gifts.csv')
-gifts = pd.merge(gifts_trip, gifts, on='GiftId')
-gifts.index = np.array(gifts.index) + 1
+# gifts_trip = pd.read_csv('opt_shooteyes_template.csv')
+# gifts = pd.read_csv('gifts.csv')
+# gifts = pd.merge(gifts_trip, gifts, on='GiftId')
+# gifts.index = np.array(gifts.index) + 1
+gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
+
 print 'optimizing tracks'
 print weighted_reindeer_weariness(gifts)
 """
@@ -480,10 +482,11 @@ print 'greedy optimizing between tracks'
 # Greedy
 trips = list(gifts['TripId'].unique())
 print 'number of trips is: ', len(trips)
-iterations = 30
+iterations = 100
 for it in range(iterations):
+    print 'Iteration %da' % it
     # print gift_trips
-    for i in range(1, len(trips) - 2, 2):
+    for i in range(0, len(trips), 2):
         # single iteration per trip
         # Working from the start
         cur_trip_from = gifts[gifts['TripId'] == trips[i - 1]]
@@ -497,7 +500,8 @@ for it in range(iterations):
         gifts = pd.concat([cur_trip_from_to, gifts])
         gifts.to_csv('shoot_opt_v1_iterations.csv')
 
-    for i in range(2, len(trips) - 2, 2):
+    print 'Iteration %db' % it
+    for i in range(1, len(trips), 2):
         # single iteration per trip
         # Working from the start
         cur_trip_from = gifts[gifts['TripId'] == trips[i - 1]]
@@ -515,7 +519,7 @@ gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
 gifts = trips_optimize_v4(gifts, 9, 0, 1)
 
 print 'writing results to file'
-gift_trips = np.array(gifts_trip)
+gift_trips = np.array(gifts)
 gift_trips = gift_trips[:, [0, 3]]
 gift_trips = pd.DataFrame(gift_trips)
 gift_trips.columns = ['GiftId', 'TripId']
