@@ -484,7 +484,8 @@ Try to split trips
 """
 print 'greedy optimizing between tracks'
 # Greedy
-trips = list(gifts['TripId'].unique())
+trips = gifts['TripId'].unique()
+trips = list(np.sort(trips))
 print 'number of trips is: ', len(trips)
 iterations = 100
 for it in range(iterations):
@@ -495,7 +496,7 @@ for it in range(iterations):
         # Working from the start
         cur_trip_from = gifts[gifts['TripId'] == trips[i - 1]]
         cur_trip_to = gifts[gifts['TripId'] == trips[i]]
-        if (i % 50) < 2:
+        if (i % 500) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
             gifts.to_csv('shoot_opt_v1_iterations.csv')
@@ -503,7 +504,6 @@ for it in range(iterations):
         gifts = gifts[gifts.TripId != trips[i]]
         gifts = gifts[gifts.TripId != trips[i - 1]]
         gifts = pd.concat([cur_trip_from_to, gifts])
-        gifts.to_csv('shoot_opt_v1_iterations.csv')
 
     print 'Iteration %db' % it
     for i in range(1, len(trips), 2):
@@ -511,7 +511,7 @@ for it in range(iterations):
         # Working from the start
         cur_trip_from = gifts[gifts['TripId'] == trips[i - 1]]
         cur_trip_to = gifts[gifts['TripId'] == trips[i]]
-        if (i % 50) < 2:
+        if (i % 500) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
             gifts.to_csv('shoot_opt_v1_iterations.csv')
