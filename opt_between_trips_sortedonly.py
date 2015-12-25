@@ -412,13 +412,15 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=15, max_items=1, 
     """
     Optimizing between 2 trips
     """
-    gifts_to = gifts_to.sort_values('Latitude', ascending=False)
+    best_trip_to = gifts_to = gifts_to.sort_values('Latitude', ascending=False)
     to_trip_id = gifts_to['TripId'].iloc[0]
-    gifts_from = gifts_from.sort_values('Latitude', ascending=False)
+    best_trip_from = gifts_from = gifts_from.sort_values('Latitude', ascending=False)
 
     best_weight_to = np.sum(np.array(gifts_to['Weight']))
-    best_trip_to, base_metric_to = single_trip_optimize(gifts_to, 4, 0, 5)
-    best_trip_from, base_metric_from = single_trip_optimize(gifts_from, 4, 0, 5)
+    base_metric_to = weighted_trip_length(gifts_to[['Latitude', 'Longitude']],
+                                          list(gifts_to['Weight']))
+    base_metric_from = weighted_trip_length(gifts_from[['Latitude', 'Longitude']],
+                                            list(gifts_from['Weight']))
 
     best_metric = base_metric = base_metric_to + base_metric_from
 
@@ -449,8 +451,10 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=15, max_items=1, 
                 cur_trip_to = cur_trip_to.sort_values('Latitude', ascending=False)
                 cur_trip_from = cur_trip_from.sort_values('Latitude', ascending=False)
 
-                cur_trip_to, cur_metric_to = single_trip_optimize(cur_trip_to, 4, 0, 5)
-                cur_trip_from, cur_metric_from = single_trip_optimize(cur_trip_from, 4, 0, 5)
+                cur_metric_to = weighted_trip_length(cur_trip_to[['Latitude', 'Longitude']],
+                                                     list(cur_trip_to['Weight']))
+                cur_metric_from = weighted_trip_length(cur_trip_from[['Latitude', 'Longitude']],
+                                                       list(cur_trip_from['Weight']))
 
                 if (cur_metric_to + cur_metric_from) < best_metric:
                     best_metric = cur_metric_to + cur_metric_from
@@ -491,7 +495,7 @@ for it in range(iterations):
         # Working from the start
         cur_trip_from = gifts[gifts['TripId'] == trips[i - 1]]
         cur_trip_to = gifts[gifts['TripId'] == trips[i]]
-        if (i % 20) < 2:
+        if (i % 50) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
             gifts.to_csv('shoot_opt_v1_iterations.csv')
@@ -507,7 +511,7 @@ for it in range(iterations):
         # Working from the start
         cur_trip_from = gifts[gifts['TripId'] == trips[i - 1]]
         cur_trip_to = gifts[gifts['TripId'] == trips[i]]
-        if (i % 20) < 2:
+        if (i % 50) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
             gifts.to_csv('shoot_opt_v1_iterations.csv')
