@@ -408,7 +408,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     return gifts, cur_weight
 
 
-def gift_switch_optimize(gifts_from, gifts_to, n_tries=15, poisson_items=2, max_weight=900,
+def gift_switch_optimize(gifts_from, gifts_to, n_tries=15, poisson_items=4, max_weight=900,
                          trip_max_weight=990):
     """
     Optimizing between 2 trips using poisson probability of adjacted gifts
@@ -541,7 +541,7 @@ for ful_it in range(full_iterations):
 
     # switching
     print 'switching'
-    switch_iterations = 30
+    switch_iterations = 40
     for switch_it in range(switch_iterations):
         print 'Iteration %da' % switch_it
         # print gift_trips
@@ -556,7 +556,8 @@ for ful_it in range(full_iterations):
                 for gift_to in trips[i]:
                     cur_trip_from = gifts[gifts['TripId'] == gift_from]
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
-                    cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to)
+                    cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to,
+                                                            poisson_items=(((switch_iterations - i) * 1.0 / 10) + 1))
                     gifts = gifts[gifts.TripId != gift_to]
                     gifts = gifts[gifts.TripId != gift_from]
                     gifts = pd.concat([cur_trip_from_to, gifts])
@@ -573,7 +574,8 @@ for ful_it in range(full_iterations):
                 for gift_to in trips[i - 1]:
                     cur_trip_from = gifts[gifts['TripId'] == gift_from]
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
-                    cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to)
+                    cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to,
+                                                            poisson_items=(((switch_iterations - i) * 1.0 / 10) + 1))
                     gifts = gifts[gifts.TripId != gift_to]
                     gifts = gifts[gifts.TripId != gift_from]
                     gifts = pd.concat([cur_trip_from_to, gifts])

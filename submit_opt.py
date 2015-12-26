@@ -71,7 +71,7 @@ def trips_optimize_v4(gift_trips, batch_size, k_changes, changes_iterations):
     :param batch_size:
     :return: optimized trips
     """
-    trips = gift_trips['TripId'].unique()
+    trips = np.sort(gift_trips['TripId'].unique())
     opt_trip = []
     # print gift_trips
     for trip_i in trips:
@@ -289,7 +289,8 @@ def weighted_sub_trip_length_v2(stops, weights):
 gifts_trip = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson2.csv')
 print gifts_trip
 print weighted_reindeer_weariness(gifts_trip)
-# gifts_trip = trips_optimize_v4(gifts_trip, 7, 0, 1)
+gifts_trip = trips_optimize_v4(gifts_trip, 8, 0, 1)
+print gifts_trip
 
 print 'writing results to file'
 gift_trips = np.array(gifts_trip)

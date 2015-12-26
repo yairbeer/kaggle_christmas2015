@@ -26,7 +26,7 @@ public Gift(int id, double latitude, double longitude, double weight)
 AVG_EARTH_RADIUS = 6371  # in km
 
 
-def haversine(point1, point2, miles=False):
+def haversine(point1, point2):
     """ Calculate the great-circle distance bewteen two points on the Earth surface.
     :input: two 2-tuples, containing the latitude and longitude of each point
     in decimal degrees.
