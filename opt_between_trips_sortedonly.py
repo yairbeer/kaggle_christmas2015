@@ -408,7 +408,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     return gifts, cur_weight
 
 
-def gift_switch_optimize(gifts_from, gifts_to, n_tries=15, poisson_items=1.5, max_weight=900,
+def gift_switch_optimize(gifts_from, gifts_to, n_tries=15, poisson_items=2, max_weight=900,
                          trip_max_weight=990):
     """
     Optimizing between 2 trips using poisson probability of adjacted gifts
@@ -477,7 +477,7 @@ Main program
 # gifts = pd.read_csv('gifts.csv')
 # gifts = pd.merge(gifts_trip, gifts, on='GiftId')
 # gifts.index = np.array(gifts.index) + 1
-gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
+gifts = pd.DataFrame.from_csv('shoot_opt_v1_splited.csv')
 
 print 'optimizing tracks'
 print weighted_reindeer_weariness(gifts)
@@ -501,7 +501,7 @@ for it in range(iterations):
         if (i % 500) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
-            gifts.to_csv('shoot_opt_v1_iterations.csv')
+            gifts.to_csv('shoot_opt_v1_splited_iter.csv')
         cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to)
         gifts = gifts[gifts.TripId != trips[i]]
         gifts = gifts[gifts.TripId != trips[i - 1]]
@@ -516,13 +516,13 @@ for it in range(iterations):
         if (i % 500) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
-            gifts.to_csv('shoot_opt_v1_iterations.csv')
+            gifts.to_csv('shoot_opt_v1_splited_iter.csv')
         cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to)
         gifts = gifts[gifts.TripId != trips[i]]
         gifts = gifts[gifts.TripId != trips[i - 1]]
         gifts = pd.concat([cur_trip_from_to, gifts])
 
-gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
+gifts = pd.DataFrame.from_csv('shoot_opt_v1_splited_iter.csv')
 
 print 'writing results to file'
 gift_trips = np.array(gifts)
@@ -533,6 +533,6 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('results_opt_shooteyes_iterations_v2.csv')
+gift_trips.to_csv('results_opt_shooteyes_splited_iterations_v1.csv')
 
 
