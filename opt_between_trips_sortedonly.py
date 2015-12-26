@@ -411,7 +411,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
 def gift_switch_optimize(gifts_from, gifts_to, n_tries=15, poisson_items=1.5, max_weight=900,
                          trip_max_weight=990):
     """
-    Optimizing between 2 trips
+    Optimizing between 2 trips using poisson probability of adjacted gifts
     """
     best_trip_to = gifts_to = gifts_to.sort_values('Latitude', ascending=False)
     to_trip_id = gifts_to['TripId'].iloc[0]
@@ -437,7 +437,7 @@ def gift_switch_optimize(gifts_from, gifts_to, n_tries=15, poisson_items=1.5, ma
         # load change arrays
         items_chosen = np.random.poisson(poisson_items)
         if items_chosen:
-            try_to = np.random.choice(np.arange(n_trip_from - items_chosen + 1), items_chosen, replace=False)
+            try_to = np.random.choice(np.arange(n_trip_from - items_chosen + 1), 1, replace=False)
             try_to = range(try_to, (try_to + items_chosen))
             try_from = range(n_trip_from)
             for moved_vals in try_to:
@@ -477,7 +477,7 @@ Main program
 # gifts = pd.read_csv('gifts.csv')
 # gifts = pd.merge(gifts_trip, gifts, on='GiftId')
 # gifts.index = np.array(gifts.index) + 1
-gifts = pd.DataFrame.from_csv('shoot_opt_v1_splited.csv')
+gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
 
 print 'optimizing tracks'
 print weighted_reindeer_weariness(gifts)
@@ -501,7 +501,7 @@ for it in range(iterations):
         if (i % 500) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
-            gifts.to_csv('shoot_opt_split_v2_iterations.csv')
+            gifts.to_csv('shoot_opt_v1_iterations.csv')
         cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to)
         gifts = gifts[gifts.TripId != trips[i]]
         gifts = gifts[gifts.TripId != trips[i - 1]]
@@ -516,13 +516,13 @@ for it in range(iterations):
         if (i % 500) < 2:
             print 'trip %d optimization' % i
             print weighted_reindeer_weariness(gifts)
-            gifts.to_csv('shoot_opt_split_v2_iterations.csv')
+            gifts.to_csv('shoot_opt_v1_iterations.csv')
         cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to)
         gifts = gifts[gifts.TripId != trips[i]]
         gifts = gifts[gifts.TripId != trips[i - 1]]
         gifts = pd.concat([cur_trip_from_to, gifts])
 
-gifts = pd.DataFrame.from_csv('shoot_opt_split_v2_iterations.csv')
+gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
 
 print 'writing results to file'
 gift_trips = np.array(gifts)
@@ -533,6 +533,6 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('results_opt_shooteyes_split_v2.csv')
+gift_trips.to_csv('results_opt_shooteyes_iterations_v2.csv')
 
 

@@ -494,6 +494,25 @@ def split_trip(gifts, new_trip):
         best_trip[1]['TripId'] = np.repeat(new_trip, best_trip[1].shape[0])
         new_trip += 1
     return pd.concat(best_trip), new_trip
+
+
+def combine_trips(gifts_a, gifts_b):
+    """
+    Finding if combining is good
+    """
+    metric_a = weighted_trip_length(gifts_a[['Latitude', 'Longitude']],
+                                    list(gifts_a['Weight']))
+    metric_b = weighted_trip_length(gifts_b[['Latitude', 'Longitude']],
+                                    list(gifts_b['Weight']))
+    total_weight = sum(list(gifts_a['Weight']) + list(gifts_b['Weight']))
+    if total_weight < 990:
+        combined_gifts = pd.concat([gifts_a, gifts_b])
+        combined_gifts = combined_gifts.sort_values('Latitude', ascending=False)
+        combine_metric = weighted_trip_length(combined_gifts[['Latitude', 'Longitude']],
+                                              list(combined_gifts['Weight']))
+        if (metric_a + metric_b) > combine_metric:
+            print 'possible weariness gain: %f' % (combine_metric - (metric_a + metric_b))
+
 """
 Main program
 """
@@ -508,6 +527,38 @@ print 'optimizing tracks'
 print weighted_reindeer_weariness(gifts)
 trips = gifts['TripId'].unique()
 trips = list(np.sort(trips))
+
+# Combining
+for i in range(0, len(trips), 2):
+    # single iteration per trip
+    # Working from the start
+    cur_trip_a = gifts[gifts['TripId'] == trips[i - 1]]
+    cur_trip_b = gifts[gifts['TripId'] == trips[i]]
+    if (i % 500) < 2:
+        print 'trip %d optimization' % i
+        # print weighted_reindeer_weariness(gifts)
+        # gifts.to_csv('shoot_opt_split_v2_iterations.csv')
+    combine_trips(cur_trip_a, cur_trip_b)
+    # gifts = gifts[gifts.TripId != trips[i]]
+    # gifts = gifts[gifts.TripId != trips[i - 1]]
+    # gifts = pd.concat([cur_trip_from_to, gifts])
+
+for i in range(1, len(trips), 2):
+    # single iteration per trip
+    # Working from the start
+    cur_trip_a = gifts[gifts['TripId'] == trips[i - 1]]
+    cur_trip_b = gifts[gifts['TripId'] == trips[i]]
+    if (i % 500) < 2:
+        print 'trip %d optimization' % i
+        # print weighted_reindeer_weariness(gifts)
+        # gifts.to_csv('shoot_opt_split_v2_iterations.csv')
+    combine_trips(cur_trip_a, cur_trip_b)
+    # gifts = gifts[gifts.TripId != trips[i]]
+    # gifts = gifts[gifts.TripId != trips[i - 1]]
+    # gifts = pd.concat([cur_trip_from_to, gifts])
+
+# Splitting
+print 'spliting'
 new_trip = 3000
 gifts_new = []
 for i in range(0, len(trips)):
