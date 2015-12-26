@@ -5,7 +5,7 @@ from math import radians, cos, sin, asin, sqrt
 import pandas as pd
 import numpy as np
 import itertools
-import matplotlib.pyplot as plt
+import csv
 
 AVG_EARTH_RADIUS = 6371  # in km
 
@@ -509,6 +509,7 @@ Main program
 gifts_in = 'shoot_opt_v1_iterations.csv'
 gifts_save = 'shoot_opt_v2_5_50_poisson2.csv'
 gifts_out = 'shoot_opt_v2_5_50_poisson2_rslts.csv'
+trips_out = 'shoot_opt_v2_5_50_poisson2_trips.csv'
 gifts = pd.DataFrame.from_csv(gifts_in)
 
 print 'optimizing tracks'
@@ -540,7 +541,7 @@ for ful_it in range(full_iterations):
 
     # switching
     print 'switching'
-    switch_iterations = 50
+    switch_iterations = 30
     for switch_it in range(switch_iterations):
         print 'Iteration %da' % switch_it
         # print gift_trips
@@ -578,6 +579,11 @@ for ful_it in range(full_iterations):
                     gifts = pd.concat([cur_trip_from_to, gifts])
 
 gifts = pd.DataFrame.from_csv(gifts_save)
+
+with open(trips_out, 'wb') as csvfile:
+    csvwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    for row in trips:
+        csvwriter.writerow(row)
 
 print 'writing results to file'
 gift_trips = np.array(gifts)

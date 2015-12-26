@@ -286,7 +286,7 @@ def weighted_sub_trip_length_v2(stops, weights):
     return dist
 
 # read files
-gifts_trip = pd.DataFrame.from_csv('shoot_opt_v1_splited_iter.csv')
+gifts_trip = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson2.csv')
 print gifts_trip
 print weighted_reindeer_weariness(gifts_trip)
 # gifts_trip = trips_optimize_v4(gifts_trip, 7, 0, 1)
