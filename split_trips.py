@@ -502,21 +502,21 @@ Main program
 # gifts = pd.read_csv('gifts.csv')
 # gifts = pd.merge(gifts_trip, gifts, on='GiftId')
 # gifts.index = np.array(gifts.index) + 1
-gifts = pd.DataFrame.from_csv('shoot_opt_v1_iterations.csv')
+gifts = pd.DataFrame.from_csv('shoot_opt_split_v2_iterations.csv')
 
 print 'optimizing tracks'
 print weighted_reindeer_weariness(gifts)
 trips = gifts['TripId'].unique()
 trips = list(np.sort(trips))
-new_trip = 2000
+new_trip = 3000
 gifts_new = []
 for i in range(0, len(trips)):
-    print 'trip %d optimization' % trips[i]
+    print 'trip %d optimization with weight %f' % (trips[i], np.sum(gifts[gifts['TripId'] == trips[i]]['Weight']))
     tmp_trip, new_trip = split_trip(gifts[gifts['TripId'] == trips[i]], new_trip)
     gifts_new.append(tmp_trip)
 gifts = pd.concat(gifts_new)
 print weighted_reindeer_weariness(gifts)
-gifts.to_csv('shoot_opt_v1_splited.csv')
+gifts.to_csv('shoot_opt_v2_splited.csv')
 # print 'greedy optimizing between tracks'
 # # Greedy
 # trips = list(gifts['TripId'].unique())
