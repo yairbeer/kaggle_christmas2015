@@ -649,8 +649,8 @@ for ful_it in range(full_iterations):
                     cur_trip_from = gifts[gifts['TripId'] == gift_from]
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
                     cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-                    gifts = gifts[gifts.TripId != trips[i]]
-                    gifts = gifts[gifts.TripId != trips[i - 1]]
+                    gifts = gifts[gifts.TripId != gift_to]
+                    gifts = gifts[gifts.TripId != gift_from]
                     gifts = pd.concat([cur_trip_from_to, gifts])
 
         print 'Iteration %db' % it
@@ -666,8 +666,8 @@ for ful_it in range(full_iterations):
                     cur_trip_from = gifts[gifts['TripId'] == gift_from]
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
                     cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-                    gifts = gifts[gifts.TripId != trips[i]]
-                    gifts = gifts[gifts.TripId != trips[i - 1]]
+                    gifts = gifts[gifts.TripId != gift_to]
+                    gifts = gifts[gifts.TripId != gift_from]
                     gifts = pd.concat([cur_trip_from_to, gifts])
 
 gifts = pd.DataFrame.from_csv(gifts_save)
