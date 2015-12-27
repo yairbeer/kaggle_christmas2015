@@ -579,11 +579,11 @@ new_trip = trips[-1] + 1
 print 'number of trips is: ', len(trips)
 trips = map(lambda x: [x], trips)
 
-full_iterations = 3
+full_iterations = 50
 for ful_it in range(full_iterations):
     # switching
     print 'switching'
-    switch_iterations = 60
+    switch_iterations = 20
     for switch_it in range(switch_iterations):
         print 'Iteration %da' % switch_it
         # print gift_trips
@@ -596,7 +596,7 @@ for ful_it in range(full_iterations):
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
                     cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to,
                                                             poisson_items=(((switch_iterations - switch_it) *
-                                                                            1.0 / 5) + 1))
+                                                                            1.0 / 4) + 1))
                     gifts = gifts[gifts.TripId != gift_to]
                     gifts = gifts[gifts.TripId != gift_from]
                     gifts = pd.concat([cur_trip_from_to, gifts])
@@ -613,23 +613,32 @@ for ful_it in range(full_iterations):
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
                     cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to,
                                                             poisson_items=(((switch_iterations - switch_it) *
-                                                                            1.0 / 10) + 1))
+                                                                            1.0 / 4) + 1))
                     gifts = gifts[gifts.TripId != gift_to]
                     gifts = gifts[gifts.TripId != gift_from]
                     gifts = pd.concat([cur_trip_from_to, gifts])
         print weighted_reindeer_weariness(gifts)
         gifts.to_csv(gifts_save)
 
+    n_splits = 0
+    max_splits = 1
     # Splitting
     print 'spliting'
     gifts_new = []
     for i in range(0, len(trips)):
         for gift_trip in trips[i]:
             if np.sum(gifts[gifts['TripId'] == gift_trip]['Weight']):
+                cur_new_trip = new_trip
                 print 'trip %d optimization with weight %f' % (gift_trip, np.sum(gifts[gifts['TripId'] == gift_trip]['Weight']))
-                tmp_trip, new_trip, trips = split_trip(gifts[gifts['TripId'] == gift_trip], new_trip, trips)
+                if n_splits < max_splits:
+                    tmp_trip, new_trip, trips = split_trip(gifts[gifts['TripId'] == gift_trip], new_trip, trips)
+                else:
+                    tmp_trip = gifts[gifts['TripId'] == gift_trip]
+                if (new_trip - cur_new_trip) > 0:
+                    n_splits += 1
                 gifts_new.append(tmp_trip)
     gifts = pd.concat(gifts_new)
+
     print weighted_reindeer_weariness(gifts)
 
     with open(trips_out, 'wb') as csvfile:
@@ -637,7 +646,13 @@ for ful_it in range(full_iterations):
         for row in trips:
             csvwriter.writerow(row)
 
-gifts = pd.DataFrame.from_csv(gifts_in)
+gifts = pd.DataFrame.from_csv(gifts_save)
+trips = []
+with open(trips_out, 'rb') as csvfile:
+    csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    for row in csvreader:
+        trips.append(row)
+
 iterations = 20
 for it in range(iterations):
     print 'Iteration %da' % it
@@ -678,12 +693,6 @@ gifts.to_csv(gifts_save)
 
 gifts = pd.DataFrame.from_csv(gifts_save)
 
-trips = []
-with open(trips_out, 'rb') as csvfile:
-    csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-    for row in csvreader:
-        trips.append(row)
-
 print 'writing results to file'
 gift_trips = np.array(gifts)
 gift_trips = gift_trips[:, [0, 3]]
@@ -694,5 +703,3 @@ gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
 gift_trips.to_csv(gifts_out)
-
-
