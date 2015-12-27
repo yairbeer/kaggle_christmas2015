@@ -584,7 +584,7 @@ full_iterations = 3
 for ful_it in range(full_iterations):
     # switching
     print 'switching'
-    switch_iterations = 40
+    switch_iterations = 50
     for switch_it in range(switch_iterations):
         print 'Iteration %da' % switch_it
         # print gift_trips
@@ -633,42 +633,42 @@ for ful_it in range(full_iterations):
     gifts = pd.concat(gifts_new)
     print weighted_reindeer_weariness(gifts)
 
-    iterations = 20
-    for it in range(iterations):
-        print 'Iteration %da' % it
-        # print gift_trips
-        for i in range(0, len(trips), 2):
-            # single iteration per trip
-            # Working from the start
-            if (i % 20) < 2:
-                print 'trip %d optimization' % i
-                print weighted_reindeer_weariness(gifts)
-                gifts.to_csv(gifts_save)
-            for gift_from in trips[i - 1]:
-                for gift_to in trips[i]:
-                    cur_trip_from = gifts[gifts['TripId'] == gift_from]
-                    cur_trip_to = gifts[gifts['TripId'] == gift_to]
-                    cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-                    gifts = gifts[gifts.TripId != gift_to]
-                    gifts = gifts[gifts.TripId != gift_from]
-                    gifts = pd.concat([cur_trip_from_to, gifts])
+iterations = 20
+for it in range(iterations):
+    print 'Iteration %da' % it
+    # print gift_trips
+    for i in range(0, len(trips), 2):
+        # single iteration per trip
+        # Working from the start
+        if (i % 20) < 2:
+            print 'trip %d optimization' % i
+            print weighted_reindeer_weariness(gifts)
+            gifts.to_csv(gifts_save)
+        for gift_from in trips[i - 1]:
+            for gift_to in trips[i]:
+                cur_trip_from = gifts[gifts['TripId'] == gift_from]
+                cur_trip_to = gifts[gifts['TripId'] == gift_to]
+                cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
+                gifts = gifts[gifts.TripId != gift_to]
+                gifts = gifts[gifts.TripId != gift_from]
+                gifts = pd.concat([cur_trip_from_to, gifts])
 
-        print 'Iteration %db' % it
-        for i in range(1, len(trips), 2):
-            # single iteration per trip
-            # Working from the start
-            if (i % 20) < 2:
-                print 'trip %d optimization' % i
-                print weighted_reindeer_weariness(gifts)
-                gifts.to_csv(gifts_save)
-            for gift_from in trips[i]:
-                for gift_to in trips[i - 1]:
-                    cur_trip_from = gifts[gifts['TripId'] == gift_from]
-                    cur_trip_to = gifts[gifts['TripId'] == gift_to]
-                    cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
-                    gifts = gifts[gifts.TripId != gift_to]
-                    gifts = gifts[gifts.TripId != gift_from]
-                    gifts = pd.concat([cur_trip_from_to, gifts])
+    print 'Iteration %db' % it
+    for i in range(1, len(trips), 2):
+        # single iteration per trip
+        # Working from the start
+        if (i % 20) < 2:
+            print 'trip %d optimization' % i
+            print weighted_reindeer_weariness(gifts)
+            gifts.to_csv(gifts_save)
+        for gift_from in trips[i]:
+            for gift_to in trips[i - 1]:
+                cur_trip_from = gifts[gifts['TripId'] == gift_from]
+                cur_trip_to = gifts[gifts['TripId'] == gift_to]
+                cur_trip_from_to = gift_switch_optimize_dynamic(cur_trip_from, cur_trip_to)
+                gifts = gifts[gifts.TripId != gift_to]
+                gifts = gifts[gifts.TripId != gift_from]
+                gifts = pd.concat([cur_trip_from_to, gifts])
 
 gifts = pd.DataFrame.from_csv(gifts_save)
 
