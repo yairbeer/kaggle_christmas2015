@@ -369,7 +369,7 @@ def trips_orginizer(gifts, weight_limit):
     cur_weight = 0
     gifts.loc[:, 'TripId'] = np.ones((gifts.shape[0], 1)) * (-1)
 
-    gifts = gifts.sort('Longitude', ascending=True)
+    gifts = gifts.sort_values('Longitude', ascending=True)
     gift_index = list(gifts.index)
     for cur_index in gift_index:
         # add current weight
@@ -384,9 +384,10 @@ def trips_orginizer(gifts, weight_limit):
             gifts['TripId'].at[cur_index] = cur_trip
             cur_weight += gifts['Weight'].loc[cur_index]
     # print 'sorting'
+    trips = []
     for trip in gifts['TripId'].unique():
         cur_trip = gifts[gifts['TripId'] == trip]
-        cur_trip = cur_trip.sort('Latitude', ascending=False)
+        cur_trip = cur_trip.sort_values('Latitude', ascending=False)
         trips.append(cur_trip)
     gifts = pd.concat(trips, axis=0)
     # print gifts
@@ -400,7 +401,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     cur_long = cur_gift['Longitude']
     relevant_gifts = gifts[gifts['Longitude'] < (cur_long + long_limit)]
     relevant_gifts = relevant_gifts[gifts['TripId'] < 0]
-    relevant_gifts = relevant_gifts.sort('Longitude', ascending=True)
+    relevant_gifts = relevant_gifts.sort_values('Longitude', ascending=True)
     relevant_gifts_index = list(relevant_gifts.index)
     for cur_index in relevant_gifts_index:
         # add current weight
