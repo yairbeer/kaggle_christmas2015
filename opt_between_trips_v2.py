@@ -109,7 +109,7 @@ def trips_optimize_v4(gift_trips, batch_size, k_changes, changes_iterations):
         if not trip_i % 20:
             print 'trip %d optimization' % trip_i
         cur_trip = single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations)
-        opt_trip.append(cur_trip)
+    opt_trip.append(cur_trip[0])
     opt_trip = pd.concat(opt_trip)
     return opt_trip
 
