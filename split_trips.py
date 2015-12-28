@@ -629,9 +629,9 @@ Main program
 # gifts = pd.read_csv('gifts.csv')
 # gifts = pd.merge(gifts_trip, gifts, on='GiftId')
 # gifts.index = np.array(gifts.index) + 1
-gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson3.csv')
+gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4.csv')
 
-print 'optimizing tracks'
+print 'combining tracks'
 print weighted_reindeer_weariness(gifts)
 trips = gifts['TripId'].unique()
 trips = list(np.sort(trips))
@@ -665,16 +665,16 @@ for i in range(1, len(trips), 2):
     # gifts = gifts[gifts.TripId != trips[i - 1]]
     # gifts = pd.concat([cur_trip_from_to, gifts])
 
-# Splitting
-print 'spliting'
-new_trip = 3000
-gifts_new = []
-for i in range(0, len(trips)):
-    print 'trip %d optimization with weight %f' % (trips[i], np.sum(gifts[gifts['TripId'] == trips[i]]['Weight']))
-    tmp_trip, new_trip = split_trip(gifts[gifts['TripId'] == trips[i]], new_trip)
-    gifts_new.append(tmp_trip)
-gifts = pd.concat(gifts_new)
-print weighted_reindeer_weariness(gifts)
+# # Splitting
+# print 'spliting'
+# new_trip = 3000
+# gifts_new = []
+# for i in range(0, len(trips)):
+#     print 'trip %d optimization with weight %f' % (trips[i], np.sum(gifts[gifts['TripId'] == trips[i]]['Weight']))
+#     tmp_trip, new_trip = split_trip(gifts[gifts['TripId'] == trips[i]], new_trip)
+#     gifts_new.append(tmp_trip)
+# gifts = pd.concat(gifts_new)
+# print weighted_reindeer_weariness(gifts)
 # gifts.to_csv('shoot_opt_v1_splited.csv')
 # print 'greedy optimizing between tracks'
 # # Greedy

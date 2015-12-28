@@ -81,7 +81,7 @@ def trips_optimize_v4(gift_trips, batch_size, k_changes, changes_iterations):
         if not trip_i % 20:
             print 'trip %d optimization' % trip_i
         cur_trip = single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations)
-        opt_trip.append(cur_trip)
+        opt_trip.append(cur_trip[0])
     opt_trip = pd.concat(opt_trip)
     return opt_trip
 
@@ -91,6 +91,8 @@ def single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations):
     # print cur_trip
     # print cur_trip.shape
     # add first and last stop in the north pole
+    if cur_trip.shape[0] < (2 * batch_size):
+        return cur_trip, cur_trip_init_goal
     north_trip_start = pd.DataFrame([[-1, 90, 0, 0, 0]],
                                     columns=["GiftId", "Latitude", "Longitude", "Weight", "TripId"])
     north_trip_end = pd.DataFrame([[-2, 90, 0, 10, 0]],
@@ -286,10 +288,9 @@ def weighted_sub_trip_length_v2(stops, weights):
     return dist
 
 # read files
-gifts_trip = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson3.csv')
-print gifts_trip
+gifts_trip = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4.csv')
 print weighted_reindeer_weariness(gifts_trip)
-gifts_trip = trips_optimize_v4(gifts_trip, 8, 0, 1)
+gifts_trip = trips_optimize_v4(gifts_trip, 5, 0, 1)
 print gifts_trip
 
 print 'writing results to file'
@@ -301,4 +302,4 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('shoot_opt_v1_splited_iter_rslts.csv')
+gift_trips.to_csv('shoot_opt_v2_splited_iter_rslts_chk.csv')

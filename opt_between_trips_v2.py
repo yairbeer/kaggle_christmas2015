@@ -559,15 +559,15 @@ def gift_switch_optimize_dynamic(gifts_from, gifts_to, n_tries=15, max_items=1, 
 Main program
 """
 # read files
-# gifts_trip = pd.read_csv('opt_shooteyes_template.csv')
-# gifts = pd.read_csv('gifts.csv')
-# gifts = pd.merge(gifts_trip, gifts, on='GiftId')
-# gifts.index = np.array(gifts.index) + 1
-gifts_in = 'shoot_opt_v1_iterations.csv'
-gifts_save = 'shoot_opt_v2_5_50_poisson4.csv'
-gifts_out = 'shoot_opt_v2_5_50_poisson4_rslts.csv'
-trips_out = 'shoot_opt_v2_5_50_poisson4_trips.csv'
-gifts = pd.DataFrame.from_csv(gifts_in)
+gifts_trip = pd.read_csv('opt_shooteyes_template.csv')
+gifts = pd.read_csv('gifts.csv')
+gifts = pd.merge(gifts_trip, gifts, on='GiftId')
+gifts.index = np.array(gifts.index) + 1
+gifts_save = 'shoot_opt_v2_3_75_poisson5.csv'
+gifts_out = 'shoot_opt_v2_3_75_poisson5_rslts.csv'
+trips_out = 'shoot_opt_v2_3_75_poisson5_trips.csv'
+# gifts_in = 'shoot_opt_v1_iterations.csv'
+# gifts = pd.DataFrame.from_csv(gifts_in)
 
 print 'optimizing tracks'
 print weighted_reindeer_weariness(gifts)
@@ -583,7 +583,7 @@ full_iterations = 3
 for ful_it in range(full_iterations):
     # switching
     print 'switching'
-    switch_iterations = 60
+    switch_iterations = 75
     for switch_it in range(switch_iterations):
         print 'Iteration %da' % switch_it
         # print gift_trips
@@ -613,7 +613,7 @@ for ful_it in range(full_iterations):
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
                     cur_trip_from_to = gift_switch_optimize(cur_trip_from, cur_trip_to,
                                                             poisson_items=(((switch_iterations - switch_it) *
-                                                                            1.0 / 10) + 1))
+                                                                            1.0 / 5) + 1))
                     gifts = gifts[gifts.TripId != gift_to]
                     gifts = gifts[gifts.TripId != gift_from]
                     gifts = pd.concat([cur_trip_from_to, gifts])
@@ -637,7 +637,7 @@ for ful_it in range(full_iterations):
         for row in trips:
             csvwriter.writerow(row)
 
-gifts = pd.DataFrame.from_csv(gifts_in)
+gifts = pd.DataFrame.from_csv(gifts_save)
 iterations = 20
 for it in range(iterations):
     print 'Iteration %da' % it
