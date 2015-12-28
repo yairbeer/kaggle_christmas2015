@@ -1,3 +1,4 @@
+import csv
 import pandas as pd
 import numpy as np
 import itertools
@@ -289,14 +290,106 @@ def weighted_sub_trip_length_v2(stops, weights):
         prev_weight = prev_weight - tmp_weights[i]
     return dist
 
-# read files
-gifts_trip = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4.csv')
-print weighted_reindeer_weariness(gifts_trip)
-gifts_trip = trips_optimize_v4(gifts_trip, 9, 0, 1)
-print weighted_reindeer_weariness(gifts_trip)
 
+def combine_trips(gifts_a, gifts_b, trips):
+    """
+    Finding if combining is good
+    """
+    trip_a = int(gifts_a['TripId'].iloc[0])
+    trip_b = int(gifts_b['TripId'].iloc[0])
+    metric_a = weighted_trip_length(gifts_a[['Latitude', 'Longitude']],
+                                    list(gifts_a['Weight']))
+    metric_b = weighted_trip_length(gifts_b[['Latitude', 'Longitude']],
+                                    list(gifts_b['Weight']))
+    total_weight = sum(list(gifts_a['Weight']) + list(gifts_b['Weight']))
+    if total_weight < 990:
+        combined_gifts = pd.concat([gifts_a, gifts_b])
+        combined_gifts = combined_gifts.sort_values('Latitude', ascending=False)
+        combined_gifts, combine_metric = single_trip_optimize(combined_gifts, 9,  0, 1)
+        if (metric_a + metric_b) > combine_metric:
+            print 'weariness gain: %f' % (combine_metric - (metric_a + metric_b))
+            combined_gifts['TripId'] = np.repeat(trip_a, combined_gifts.shape[0])
+            trips = remove_trip(trip_b, trips)
+            return combined_gifts, trips
+    return pd.concat([gifts_a, gifts_b]), trips
+
+
+def remove_trip(removed_trip, trips):
+    """
+    Remove wasted trip
+    """
+    for i in range(len(trips)):
+        for j in range(len(trips[i])):
+            if trips[i][j] == removed_trip:
+                if len(trips[i]) == 1:
+                    trips.pop(i)
+                else:
+                    trips[i].pop(j)
+                print 'removed trip %d' % removed_trip
+                return trips
+    return trips
+
+# # read files
+# gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4.csv')
+# print weighted_reindeer_weariness(gifts)
+# gifts = trips_optimize_v4(gifts, 9, 0, 1)
+# print weighted_reindeer_weariness(gifts)
+# gifts.to_csv('shoot_opt_v2_5_50_poisson4_batch_sorted.csv')
+
+gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4.csv')
+trips = []
+with open('shoot_opt_v2_5_50_poisson4_trips.csv', 'rb') as csvfile:
+    csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    for row in csvreader:
+        row = map(lambda x: int(x), row)
+        trips.append(row)
+
+print 'combining tracks'
+print weighted_reindeer_weariness(gifts)
+
+# Combining
+new_trips = list(trips)
+for i in range(0, len(trips), 2):
+    for trip_a in trips[i]:
+        for trip_b in trips[i - 1]:
+            # single iteration per trip
+            # Working from the start
+            cur_trip_a = gifts[gifts['TripId'] == trip_a]
+            cur_trip_b = gifts[gifts['TripId'] == trip_b]
+            print 'trip_a %d optimization with length %d and weight %f' % (trip_a, cur_trip_a.shape[0],
+                                                                           np.sum(cur_trip_a['Weight']))
+            print 'trip_b %d optimization with length %d and weight %f' % (trip_b, cur_trip_b.shape[0],
+                                                                           np.sum(cur_trip_b['Weight']))
+            if cur_trip_a.shape[0] and cur_trip_b.shape[0]:
+                cur_trip, new_trips = combine_trips(cur_trip_a, cur_trip_b, new_trips)
+                gifts = gifts[gifts.TripId != trip_a]
+                gifts = gifts[gifts.TripId != trip_b]
+                gifts = pd.concat([cur_trip, gifts])
+trips = new_trips
+
+new_trips = list(trips)
+for i in range(1, len(trips), 2):
+    for trip_a in trips[i]:
+        for trip_b in trips[i - 1]:
+            # single iteration per trip
+            # Working from the start
+            cur_trip_a = gifts[gifts['TripId'] == trip_a]
+            cur_trip_b = gifts[gifts['TripId'] == trip_b]
+            print 'trip_a %d optimization with length %d and weight %f' % (trip_a, cur_trip_a.shape[0],
+                                                                           np.sum(cur_trip_a['Weight']))
+            print 'trip_b %d optimization with length %d and weight %f' % (trip_b, cur_trip_b.shape[0],
+                                                                           np.sum(cur_trip_b['Weight']))
+            if cur_trip_a.shape[0] and cur_trip_b.shape[0]:
+                cur_trip, new_trips = combine_trips(cur_trip_a, cur_trip_b, new_trips)
+                gifts = gifts[gifts.TripId != trip_a]
+                gifts = gifts[gifts.TripId != trip_b]
+                gifts = pd.concat([cur_trip, gifts])
+trips = new_trips
+
+print weighted_reindeer_weariness(gifts)
+gifts.to_csv('shoot_opt_batch9_v2_splited_combined_iter.csv')
 print 'writing results to file'
-gift_trips = np.array(gifts_trip)
+gift_trips = np.array(gifts)
 gift_trips = gift_trips[:, [0, 3]]
 gift_trips = pd.DataFrame(gift_trips)
 gift_trips.columns = ['GiftId', 'TripId']
@@ -304,4 +397,4 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('shoot_opt_batch9_v2_splited_iter_rslts.csv')
+gift_trips.to_csv('shoot_opt_batch9_v2_splited_combined_iter_rslts.csv')
