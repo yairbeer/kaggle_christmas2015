@@ -461,7 +461,10 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=30, poisson_items=1.5, tri
                     best_trip_b = cur_trip_b_new.copy(deep=True)
     best_trip = pd.concat([best_trip_a, best_trip_b])
     if (best_metric - base_metric) < 0:
-        best_trip, best_metric = single_trip_optimize(best_trip, 9, 0, 1)
+        best_trip_a, best_metric_a = single_trip_optimize(best_trip_a, 9, 0, 1)
+        best_trip_b, best_metric_b = single_trip_optimize(best_trip_b, 9, 0, 1)
+        best_metric = best_metric_a + best_metric_b
+        best_trip = pd.concat([best_trip_a, best_trip_b])
         print 'weariness gain: %f' % (best_metric - base_metric)
     return best_trip
 
