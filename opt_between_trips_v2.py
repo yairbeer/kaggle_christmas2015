@@ -537,7 +537,7 @@ def combine_trips(gifts_a, gifts_b, trips):
                                     list(gifts_b['Weight']))
     total_weight = sum(list(gifts_a['Weight']) + list(gifts_b['Weight']))
     if total_weight < 990:
-        print 'work on trips %d, %d' % (trip_a, trip_a)
+        print 'work on trips %d, %d' % (trip_a, trip_b)
         combined_gifts = pd.concat([gifts_a, gifts_b])
         combined_gifts = combined_gifts.sort_values('Latitude', ascending=False)
         combined_gifts, combine_metric = single_trip_optimize(combined_gifts, 9,  0, 1)
@@ -673,9 +673,9 @@ trips_out = 'shoot_opt_v3_poisson_batch5_sorted_opt_trips.csv'
 #         for row in trips:
 #             csvwriter.writerow(row)
 
-gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4_batch_sorted_opt.csv')
+gifts = pd.DataFrame.from_csv(gifts_save)
 trips = []
-with open('shoot_opt_v2_5_50_poisson4_trips.csv', 'rb') as csvfile:
+with open(trips_out, 'rb') as csvfile:
     csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
     for row in csvreader:
         row = map(lambda x: int(x), row)
@@ -802,6 +802,10 @@ for it in range(iterations):
                     gifts = gifts[gifts.TripId != gift_from]
                     gifts = pd.concat([cur_trip_from_to, gifts])
     trips = remove_empty_trips(gifts, trips)
+gifts.to_csv(gifts_save)
+
+gifts = trips_optimize_v4(gifts, 9, 0, 1)
+
 gifts.to_csv(gifts_save)
 
 gifts = pd.DataFrame.from_csv(gifts_save)

@@ -330,13 +330,14 @@ def remove_trip(removed_trip, trips):
     return trips
 
 # # read files
-# gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4.csv')
-# print weighted_reindeer_weariness(gifts)
-# gifts = trips_optimize_v4(gifts, 9, 0, 1)
+gifts = pd.DataFrame.from_csv('shoot_opt_v3_poisson_batch5_sorted_opt.csv')
+print weighted_reindeer_weariness(gifts)
+gifts = trips_optimize_v4(gifts, 9, 0, 1)
+
 # print weighted_reindeer_weariness(gifts)
 # gifts.to_csv('shoot_opt_v2_5_50_poisson4_batch_sorted.csv')
 
-gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4_batch_sorted_opt.csv')
+# gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4_batch_sorted_opt.csv')
 # trips = []
 # with open('shoot_opt_v2_5_50_poisson4_trips.csv', 'rb') as csvfile:
 #     csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
@@ -387,7 +388,7 @@ gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4_batch_sorted_opt.csv')
 # trips = new_trips
 
 print weighted_reindeer_weariness(gifts)
-gifts.to_csv('shoot_opt_batch9_v2_splited_combined_iter.csv')
+gifts.to_csv('shoot_opt_v3_poisson_batch5_sorted_opt.csv')
 print 'writing results to file'
 gift_trips = np.array(gifts)
 gift_trips = gift_trips[:, [0, 3]]
@@ -397,4 +398,4 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('shoot_opt_batch9_v2_splited_combined_iter_rslts.csv')
+gift_trips.to_csv('shoot_opt_v3_poisson_batch5_sorted_opt_rslts.csv')
