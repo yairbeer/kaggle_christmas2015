@@ -376,6 +376,7 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, tr
     best_trip_b = gifts_b
     b_trip_id = gifts_b['TripId'].iloc[0]
 
+    # print gifts_a.shape[0] + gifts_b.shape[0]
     base_metric_a = weighted_trip_length(gifts_a[['Latitude', 'Longitude']],
                                           list(gifts_a['Weight']))
     base_metric_b = weighted_trip_length(gifts_b[['Latitude', 'Longitude']],
@@ -433,13 +434,19 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, tr
                     elif b_lat_max < (try_a_lat - lat_limit):
                         cur_trip_b_new = pd.concat([try_a_items, cur_trip_b])
                     else:
-                        b_valid_lats = ((b_lats > (try_a_lat - lat_limit) * 1) *
-                                        (b_lats < (try_a_lat + lat_limit) * 1))
+                        b_valid_lats = ((b_lats >= (try_a_lat - lat_limit) * 1) *
+                                        (b_lats <= (try_a_lat + lat_limit) * 1))
                         b_valid_choices = []
-                        for i in range(b_lats.shape[0]):
+                        for i in range(b_valid_lats.shape[0]):
                             if b_valid_lats[i]:
                                 b_valid_choices.append(i)
-                        a_to_index = np.random.choice(b_valid_choices)
+                        if len(b_valid_choices):
+                            a_to_index = np.random.choice(b_valid_choices)
+                        else:
+                            b_valid_lats = b_lats < (try_a_lat - lat_limit)
+                            a_to_index = 0
+                            while b_valid_lats[a_to_index]:
+                                a_to_index += 1
                         if not a_to_index:
                             cur_trip_b_new = pd.concat([try_a_items, cur_trip_b])
                         elif a_to_index == (n_trip_b - 1):
@@ -462,13 +469,19 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, tr
                     elif a_lat_max < (try_b_lat - lat_limit):
                         cur_trip_a_new = pd.concat([try_b_items, cur_trip_a])
                     else:
-                        b_valid_lats = ((a_lats > (try_b_lat - lat_limit) * 1) *
-                                        (a_lats < (try_b_lat + lat_limit) * 1))
-                        b_valid_choices = []
-                        for i in range(b_lats.shape[0]):
-                            if b_valid_lats[i]:
-                                b_valid_choices.append(i)
-                        b_to_index = np.random.choice(b_valid_choices)
+                        a_valid_lats = ((a_lats >= (try_b_lat - lat_limit) * 1) *
+                                        (a_lats <= (try_b_lat + lat_limit) * 1))
+                        a_valid_choices = []
+                        for i in range(a_valid_lats.shape[0]):
+                            if a_valid_lats[i]:
+                                a_valid_choices.append(i)
+                        if len(a_valid_choices):
+                            b_to_index = np.random.choice(a_valid_choices)
+                        else:
+                            a_valid_lats = a_lats < (try_b_lat - lat_limit)
+                            b_to_index = 0
+                            while a_valid_lats[b_to_index]:
+                                b_to_index += 1
                         if not b_to_index:
                             cur_trip_a_new = pd.concat([try_b_items, cur_trip_a])
                         elif b_to_index == (n_trip_a - 1):
@@ -495,6 +508,8 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, tr
                     best_trip_b = cur_trip_b_new.copy(deep=True)
                     if not best_trip_a.shape[0] or not best_trip_b.shape[0]:
                         break
+
+    # print best_trip_a.shape[0] + best_trip_b.shape[0]
     best_trip = pd.concat([best_trip_a, best_trip_b])
     if (best_metric - base_metric) < 0:
         best_trip_a, best_metric_a = single_trip_optimize(best_trip_a, 9, 0, 1)
@@ -668,7 +683,7 @@ Main program, require sorted trips
 # gifts = pd.read_csv('gifts.csv')
 # gifts = pd.merge(gifts_trip, gifts, on='GiftId')
 # gifts.index = np.array(gifts.index) + 1
-# gifts_in = 'shoot_opt_v3_poisson_batch_sorted_opt.csv'
+gifts_in = 'shoot_opt_v3_poisson_batch_sorted_opt.csv'
 gifts_save = 'shoot_opt_v4_poisson_v2_sorted_opt.csv'
 gifts_out = 'shoot_opt_v4_poisson_v2_sorted_opt_rslts.csv'
 trips_in = 'shoot_opt_v3_poisson_batch5_sorted_opt_trips.csv'

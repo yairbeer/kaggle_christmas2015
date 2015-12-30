@@ -368,7 +368,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     return gifts, cur_weight
 
 
-def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, trip_max_weight=990):
+def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, trip_max_weight=990, lat_limit=5):
     """
     Optimizing between 2 trips using poisson probability of adjacted gifts
     """
@@ -377,10 +377,12 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, tr
     best_trip_b = gifts_b
     b_trip_id = gifts_b['TripId'].iloc[0]
 
+    # print gifts_a.shape[0] + gifts_b.shape[0]
     base_metric_a = weighted_trip_length(gifts_a[['Latitude', 'Longitude']],
-                                         list(gifts_a['Weight']))
+                                          list(gifts_a['Weight']))
     base_metric_b = weighted_trip_length(gifts_b[['Latitude', 'Longitude']],
-                                         list(gifts_b['Weight']))
+                                            list(gifts_b['Weight']))
+
     best_metric = base_metric = base_metric_a + base_metric_b
 
     # greedy
@@ -406,6 +408,7 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, tr
                 try_a_not = range(n_trip_a)
                 for moved_vals in try_a:
                     try_a_not.remove(moved_vals)
+                try_a_lat = try_a_items['Latitude'].iloc[0]
                 cur_trip_a = cur_trip_a.iloc[try_a_not]
                 n_trip_a = cur_trip_a.shape[0]
 
@@ -417,36 +420,77 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, tr
                 try_b_not = range(n_trip_b)
                 for moved_vals in try_b:
                     try_b_not.remove(moved_vals)
+                try_b_lat = try_b_items['Latitude'].iloc[0]
                 cur_trip_b = cur_trip_b.iloc[try_b_not]
                 n_trip_b = cur_trip_b.shape[0]
 
             # move items
             if items_chosen_a:
                 if n_trip_b:
-                    a_to_index = np.random.randint(n_trip_b)
-                    if not a_to_index:
-                        cur_trip_b_new = pd.concat([try_a_items, cur_trip_b])
-                    elif a_to_index == (n_trip_b - 1):
+                    b_lats = np.array(cur_trip_b['Latitude'])
+                    b_lat_min = np.min(b_lats)
+                    b_lat_max = np.max(b_lats)
+                    if b_lat_min > (try_a_lat + lat_limit):
                         cur_trip_b_new = pd.concat([cur_trip_b, try_a_items])
+                    elif b_lat_max < (try_a_lat - lat_limit):
+                        cur_trip_b_new = pd.concat([try_a_items, cur_trip_b])
                     else:
-                        cur_trip_tmp_b_p1 = cur_trip_b.iloc[:a_to_index]
-                        cur_trip_tmp_b_p2 = cur_trip_b.iloc[a_to_index:]
-                        cur_trip_b_new = pd.concat([cur_trip_tmp_b_p1, try_a_items, cur_trip_tmp_b_p2])
+                        b_valid_lats = ((b_lats >= (try_a_lat - lat_limit) * 1) *
+                                        (b_lats <= (try_a_lat + lat_limit) * 1))
+                        b_valid_choices = []
+                        for i in range(b_valid_lats.shape[0]):
+                            if b_valid_lats[i]:
+                                b_valid_choices.append(i)
+                        if len(b_valid_choices):
+                            a_to_index = np.random.choice(b_valid_choices)
+                        else:
+                            b_valid_lats = b_lats < (try_a_lat - lat_limit)
+                            a_to_index = 0
+                            while b_valid_lats[a_to_index]:
+                                a_to_index += 1
+                        if not a_to_index:
+                            cur_trip_b_new = pd.concat([try_a_items, cur_trip_b])
+                        elif a_to_index == (n_trip_b - 1):
+                            cur_trip_b_new = pd.concat([cur_trip_b, try_a_items])
+                        else:
+                            cur_trip_tmp_b_p1 = cur_trip_b.iloc[:a_to_index]
+                            cur_trip_tmp_b_p2 = cur_trip_b.iloc[a_to_index:]
+                            cur_trip_b_new = pd.concat([cur_trip_tmp_b_p1, try_a_items, cur_trip_tmp_b_p2])
                 else:
                     cur_trip_b_new = try_a_items
             else:
                 cur_trip_b_new = cur_trip_b
             if items_chosen_b:
                 if n_trip_a:
-                    b_to_index = np.random.randint(n_trip_a)
-                    if not b_to_index:
-                        cur_trip_a_new = pd.concat([try_b_items, cur_trip_a])
-                    elif b_to_index == (n_trip_a - 1):
+                    a_lats = np.array(cur_trip_a['Latitude'])
+                    a_lat_min = np.min(a_lats)
+                    a_lat_max = np.max(a_lats)
+                    if a_lat_min > (try_b_lat + lat_limit):
                         cur_trip_a_new = pd.concat([cur_trip_a, try_b_items])
+                    elif a_lat_max < (try_b_lat - lat_limit):
+                        cur_trip_a_new = pd.concat([try_b_items, cur_trip_a])
                     else:
-                        cur_trip_tmp_a_p1 = cur_trip_a.iloc[:b_to_index]
-                        cur_trip_tmp_a_p2 = cur_trip_a.iloc[b_to_index:]
-                        cur_trip_a_new = pd.concat([cur_trip_tmp_a_p1, try_b_items, cur_trip_tmp_a_p2])
+                        a_valid_lats = ((a_lats >= (try_b_lat - lat_limit) * 1) *
+                                        (a_lats <= (try_b_lat + lat_limit) * 1))
+                        a_valid_choices = []
+                        for i in range(a_valid_lats.shape[0]):
+                            if a_valid_lats[i]:
+                                a_valid_choices.append(i)
+                        if len(a_valid_choices):
+                            b_to_index = np.random.choice(a_valid_choices)
+                        else:
+                            a_valid_lats = a_lats < (try_b_lat - lat_limit)
+                            b_to_index = 0
+                            while a_valid_lats[b_to_index]:
+                                b_to_index += 1
+                        if not b_to_index:
+                            cur_trip_a_new = pd.concat([try_b_items, cur_trip_a])
+                        elif b_to_index == (n_trip_a - 1):
+                            cur_trip_a_new = pd.concat([cur_trip_a, try_b_items])
+                        else:
+                            cur_trip_tmp_a_p1 = cur_trip_a.iloc[:b_to_index]
+                            cur_trip_tmp_a_p2 = cur_trip_a.iloc[b_to_index:]
+                            cur_trip_a_new = pd.concat([cur_trip_tmp_a_p1, try_b_items, cur_trip_tmp_a_p2])
                 else:
                     cur_trip_a_new = try_b_items
             else:
@@ -465,6 +509,8 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, tr
                     best_trip_b = cur_trip_b_new.copy(deep=True)
                     if not best_trip_a.shape[0] or not best_trip_b.shape[0]:
                         break
+
+    # print best_trip_a.shape[0] + best_trip_b.shape[0]
     best_trip = pd.concat([best_trip_a, best_trip_b])
     if (best_metric - base_metric) < 0:
         best_trip_a, best_metric_a = single_trip_optimize(best_trip_a, 9, 0, 1)
@@ -672,7 +718,7 @@ for it in range(iterations):
                     cur_trip_from = gifts[gifts['TripId'] == gift_from]
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
                     if cur_trip_from.shape[0] and cur_trip_to.shape[0]:
-                        cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=100,
+                        cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=200,
                                                                    poisson_items=(((it_switch - i_switch) *
                                                                                   1.0 / 20) + 1))
                         gifts = gifts[gifts.TripId != gift_to]
