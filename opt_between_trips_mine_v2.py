@@ -378,10 +378,9 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=100, poisson_items=1.5, tr
     b_trip_id = gifts_b['TripId'].iloc[0]
 
     base_metric_a = weighted_trip_length(gifts_a[['Latitude', 'Longitude']],
-                                          list(gifts_a['Weight']))
+                                         list(gifts_a['Weight']))
     base_metric_b = weighted_trip_length(gifts_b[['Latitude', 'Longitude']],
-                                            list(gifts_b['Weight']))
-
+                                         list(gifts_b['Weight']))
     best_metric = base_metric = base_metric_a + base_metric_b
 
     # greedy
@@ -673,9 +672,9 @@ for it in range(iterations):
                     cur_trip_from = gifts[gifts['TripId'] == gift_from]
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
                     if cur_trip_from.shape[0] and cur_trip_to.shape[0]:
-                        cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=50,
+                        cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=100,
                                                                    poisson_items=(((it_switch - i_switch) *
-                                                                                  1.0 / 10) + 1))
+                                                                                  1.0 / 20) + 1))
                         gifts = gifts[gifts.TripId != gift_to]
                         gifts = gifts[gifts.TripId != gift_from]
                         gifts = pd.concat([cur_trip_from_to, gifts])
