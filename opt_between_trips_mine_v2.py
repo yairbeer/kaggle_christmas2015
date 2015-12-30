@@ -326,7 +326,7 @@ def trips_orginizer(gifts, weight_limit):
     cur_weight = 0
     gifts.loc[:, 'TripId'] = np.ones((gifts.shape[0], 1)) * (-1)
 
-    gifts = gifts.sort('Longitude', ascending=True)
+    gifts = gifts.sort_values('Longitude', ascending=True)
     gift_index = list(gifts.index)
     for cur_index in gift_index:
         # add current weight
@@ -341,9 +341,10 @@ def trips_orginizer(gifts, weight_limit):
             gifts['TripId'].at[cur_index] = cur_trip
             cur_weight += gifts['Weight'].loc[cur_index]
     # print 'sorting'
+    trips = []
     for trip in gifts['TripId'].unique():
         cur_trip = gifts[gifts['TripId'] == trip]
-        cur_trip = cur_trip.sort('Latitude', ascending=False)
+        cur_trip = cur_trip.sort_values('Latitude', ascending=False)
         trips.append(cur_trip)
     gifts = pd.concat(trips, axis=0)
     # print gifts
@@ -357,7 +358,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     cur_long = cur_gift['Longitude']
     relevant_gifts = gifts[gifts['Longitude'] < (cur_long + long_limit)]
     relevant_gifts = relevant_gifts[gifts['TripId'] < 0]
-    relevant_gifts = relevant_gifts.sort('Longitude', ascending=True)
+    relevant_gifts = relevant_gifts.sort_valus('Longitude', ascending=True)
     relevant_gifts_index = list(relevant_gifts.index)
     for cur_index in relevant_gifts_index:
         # add current weight
@@ -634,34 +635,27 @@ def remove_empty_trips(gifts, trips):
 Main program, require sorted trips
 """
 # read files
-# gifts_trip = pd.read_csv('opt_shooteyes_template.csv')
-# gifts = pd.read_csv('gifts.csv')
-# gifts = pd.merge(gifts_trip, gifts, on='GiftId')
-# gifts.index = np.array(gifts.index) + 1
-gifts_in = 'shoot_opt_v3_poisson_batch5_sorted_opt.csv'
-gifts_save = 'shoot_opt_v4_poisson_v2_sorted_opt_chk.csv'
-gifts_out = 'shoot_opt_v4_poisson_v2_sorted_opt_chk_rslts.csv'
-trips_in = 'shoot_opt_v3_poisson_batch5_sorted_opt_trips.csv'
-trips_out = 'shoot_opt_v4_poisson_v2_sorted_opt_chk_trips.csv'
-gifts = pd.DataFrame.from_csv(gifts_in)
+gifts = pd.read_csv('gifts.csv')
+print 'orginizing trips with %d weight limit' % 950
+gifts = trips_orginizer(gifts, 950)
+gifts.index = np.array(gifts.index) + 1
+print 'optimizing tracks'
+print weighted_reindeer_weariness(gifts)
 
-trips = []
-with open(trips_in, 'rb') as csvfile:
-    csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-    for row in csvreader:
-        row = map(lambda x: int(x), row)
-        trips.append(row)
-csvfile.close()
-new_trip = 0
-for i in range(len(trips)):
-    for j in range(len(trips[i])):
-        if trips[i][j] > new_trip:
-            new_trip = trips[i][j]
-new_trip += 1
+gifts_save = 'mine_opt_v3.csv'
+gifts_out = 'mine_opt_v3_rslts.csv'
+trips_out = 'mine_opt_v3_trips.csv'
+
+trips = gifts['TripId'].unique()
+trips = list(np.sort(trips))
+new_trip = trips[-1] + 1
+print 'number of trips is: ', len(trips)
+trips = map(lambda x: [x], trips)
+
 
 trips = remove_empty_trips(gifts, trips)
 
-iterations = 30
+iterations = 50
 for it in range(iterations):
     it_switch = 50
     for i_switch in range(it_switch):
