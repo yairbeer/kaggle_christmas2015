@@ -689,7 +689,7 @@ gifts_out = 'shoot_opt_v4_poisson_v2_sorted_opt_rslts.csv'
 trips_in = 'shoot_opt_v3_poisson_batch5_sorted_opt_trips.csv'
 trips_out = 'shoot_opt_v4_poisson_v2_sorted_opt_trips.csv'
 gifts = pd.DataFrame.from_csv(gifts_in)
-
+gifts = trips_optimize_v4(gifts, 9, 0, 1)
 trips = []
 with open(trips_in, 'rb') as csvfile:
     csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')

@@ -700,9 +700,9 @@ trips = map(lambda x: [x], trips)
 
 trips = remove_empty_trips(gifts, trips)
 
-iterations = 50
+iterations = 10
 for it in range(iterations):
-    it_switch = 50
+    it_switch = 20
     for i_switch in range(it_switch):
         print 'Iteration %d' % it_switch
         # print gift_trips
@@ -720,7 +720,7 @@ for it in range(iterations):
                     if cur_trip_from.shape[0] and cur_trip_to.shape[0]:
                         cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=200,
                                                                    poisson_items=(((it_switch - i_switch) *
-                                                                                  1.0 / 20) + 1))
+                                                                                  1.0 / 5) + 1))
                         gifts = gifts[gifts.TripId != gift_to]
                         gifts = gifts[gifts.TripId != gift_from]
                         gifts = pd.concat([cur_trip_from_to, gifts])
