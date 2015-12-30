@@ -749,7 +749,6 @@ for it in range(iterations):
                         gifts = gifts[gifts.TripId != gift_to]
                         gifts = gifts[gifts.TripId != gift_from]
                         gifts = pd.concat([cur_trip_from_to, gifts])
-    gifts = trips_optimize_v4(gifts, 9, 0, 1)
 
     trips = remove_empty_trips(gifts, trips)
 gifts.to_csv(gifts_save)
