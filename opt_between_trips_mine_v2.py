@@ -175,7 +175,7 @@ def single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations):
     cur_trip = cur_trip.iloc[:-1]
     cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
     cur_improve = cur_trip_init_goal - cur_trip_final_goal
-    # print 'iteration improve:', cur_improve
+    print 'iteration improve:', cur_improve
     return cur_trip, cur_trip_final_goal
 
 
@@ -663,17 +663,23 @@ def remove_empty_trips(gifts, trips):
     """
     Remove wasted trip
     """
+    empty = []
     for i in range(len(trips)):
         for j in range(len(trips[i])):
-            cur_gifts = gifts[gifts['TripId'] == trips[i][j]]
             cur_trip = trips[i][j]
+            cur_gifts = gifts[gifts['TripId'] == cur_trip]
             if cur_gifts.shape[0] == 0:
+                empty.append(cur_trip)
+
+    for trip_id in empty:
+        for i in range(len(trips)):
+            if trip_id in trips[i]:
                 if len(trips[i]) == 1:
                     trips.pop(i)
                 else:
                     trips[i].pop(j)
-                print 'removed trip %d' % cur_trip
-                return trips
+                print 'removed trip %d' % trip_id
+                break
     return trips
 
 """
@@ -685,6 +691,7 @@ print 'orginizing trips with %d weight limit' % 950
 gifts = trips_orginizer(gifts, 950)
 gifts.index = np.array(gifts.index) + 1
 print 'optimizing tracks'
+gifts = trips_optimize_v4(gifts, 9, 0, 1)
 print weighted_reindeer_weariness(gifts)
 
 gifts_save = 'mine_opt_v3.csv'
@@ -704,12 +711,12 @@ iterations = 10
 for it in range(iterations):
     it_switch = 20
     for i_switch in range(it_switch):
-        print 'Iteration %d' % it_switch
+        print 'Iteration %d' % i_switch
         # print gift_trips
         for i in range(0, len(trips)):
             # single iteration per trip
             # Working from the start
-            if not (i % 20):
+            if not (i % 100):
                 print 'trip %d optimization' % i
                 print weighted_reindeer_weariness(gifts)
                 gifts.to_csv(gifts_save)
@@ -718,7 +725,7 @@ for it in range(iterations):
                     cur_trip_from = gifts[gifts['TripId'] == gift_from]
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
                     if cur_trip_from.shape[0] and cur_trip_to.shape[0]:
-                        cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=200,
+                        cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=30,
                                                                    poisson_items=(((it_switch - i_switch) *
                                                                                   1.0 / 5) + 1))
                         gifts = gifts[gifts.TripId != gift_to]
