@@ -367,7 +367,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     return gifts, cur_weight
 
 
-def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=150, poisson_items=1.5, trip_max_weight=990):
+def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=1000, poisson_items=1.5, trip_max_weight=990):
     """
     Optimizing between 2 trips using poisson probability of adjacted gifts
     """
@@ -456,9 +456,10 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=150, poisson_items=1.5, tr
                                                     list(cur_trip_b_new['Weight']))
 
                 if (cur_metric_a + cur_metric_b) < best_metric:
+                    print 'new best'
                     best_metric = cur_metric_a + cur_metric_b
-                    best_trip_a = cur_trip_a.copy(deep=True)
-                    best_trip_b = cur_trip_b.copy(deep=True)
+                    best_trip_a = cur_trip_a_new.copy(deep=True)
+                    best_trip_b = cur_trip_b_new.copy(deep=True)
 
     if (best_metric - base_metric) < 0:
         print 'weariness gain: %f' % (best_metric - base_metric)
