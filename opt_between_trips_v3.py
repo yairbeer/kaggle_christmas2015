@@ -367,7 +367,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     return gifts, cur_weight
 
 
-def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=1000, poisson_items=1.5, trip_max_weight=990):
+def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=30, poisson_items=1.5, trip_max_weight=990):
     """
     Optimizing between 2 trips using poisson probability of adjacted gifts
     """
@@ -456,14 +456,14 @@ def gift_switch_optimize_v2(gifts_a, gifts_b, n_tries=1000, poisson_items=1.5, t
                                                     list(cur_trip_b_new['Weight']))
 
                 if (cur_metric_a + cur_metric_b) < best_metric:
-                    print 'new best'
                     best_metric = cur_metric_a + cur_metric_b
                     best_trip_a = cur_trip_a_new.copy(deep=True)
                     best_trip_b = cur_trip_b_new.copy(deep=True)
-
+    best_trip = pd.concat([best_trip_a, best_trip_b])
     if (best_metric - base_metric) < 0:
+        best_trip, best_metric = single_trip_optimize(best_trip, 9, 0, 1)
         print 'weariness gain: %f' % (best_metric - base_metric)
-    return pd.concat([best_trip_a, best_trip_b])
+    return best_trip
 
 
 def split_trip(gifts, new_trip, trip_list, sort=False):
@@ -733,7 +733,7 @@ for it in range(iterations):
         for i in range(0, len(trips)):
             # single iteration per trip
             # Working from the start
-            if not (i % 5):
+            if not (i % 100):
                 print 'trip %d optimization' % i
                 print weighted_reindeer_weariness(gifts)
                 gifts.to_csv(gifts_save)
@@ -746,7 +746,7 @@ for it in range(iterations):
                         gifts = gifts[gifts.TripId != gift_to]
                         gifts = gifts[gifts.TripId != gift_from]
                         gifts = pd.concat([cur_trip_from_to, gifts])
-        gifts = trips_optimize_v4(gifts, 9, 0, 1)
+    gifts = trips_optimize_v4(gifts, 9, 0, 1)
 
     trips = remove_empty_trips(gifts, trips)
 gifts.to_csv(gifts_save)
