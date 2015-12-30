@@ -85,6 +85,8 @@ def weighted_reindeer_weariness(all_trips):
     uniq_trips = all_trips.TripId.unique()
     if np.any(all_trips.groupby('TripId').Weight.sum() > weight_limit):
         raise Exception("One of the sleighs over weight limit!")
+    if not all_trips.shape[0] == 10000:
+        raise Exception("not 10000 gifts")
     dist = 0
     for t in uniq_trips:
         this_trip = all_trips[all_trips.TripId == t]
@@ -109,7 +111,7 @@ def trips_optimize_v4(gift_trips, batch_size, k_changes, changes_iterations):
         if not trip_i % 20:
             print 'trip %d optimization' % trip_i
         cur_trip = single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations)
-        opt_trip.append(cur_trip)
+        opt_trip.append(cur_trip[0])
     opt_trip = pd.concat(opt_trip)
     return opt_trip
 
