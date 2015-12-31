@@ -85,8 +85,8 @@ def weighted_reindeer_weariness(all_trips):
     uniq_trips = all_trips.TripId.unique()
     if np.any(all_trips.groupby('TripId').Weight.sum() > weight_limit):
         raise Exception("One of the sleighs over weight limit!")
-    if not all_trips.shape[0] == 10000:
-        raise Exception("not 10000 gifts")
+    if not all_trips.shape[0] == 100000:
+        raise Exception("not 100000 gifts")
     dist = 0
     for t in uniq_trips:
         this_trip = all_trips[all_trips.TripId == t]

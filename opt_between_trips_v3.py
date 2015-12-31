@@ -85,8 +85,8 @@ def weighted_reindeer_weariness(all_trips):
     uniq_trips = all_trips.TripId.unique()
     if np.any(all_trips.groupby('TripId').Weight.sum() > weight_limit):
         raise Exception("One of the sleighs over weight limit!")
-    if not all_trips.shape[0] == 10000:
-        raise Exception("not 10000 gifts")
+    if not all_trips.shape[0] == 100000:
+        raise Exception("not 100000 gifts")
     dist = 0
     for t in uniq_trips:
         this_trip = all_trips[all_trips.TripId == t]
@@ -691,13 +691,13 @@ Main program, require sorted trips
 # gifts = pd.read_csv('gifts.csv')
 # gifts = pd.merge(gifts_trip, gifts, on='GiftId')
 # gifts.index = np.array(gifts.index) + 1
-gifts_in = 'shoot_opt_v3_poisson_batch_sorted_opt.csv'
-gifts_save = 'shoot_opt_v4_poisson_v2_sorted_opt.csv'
-gifts_out = 'shoot_opt_v4_poisson_v2_sorted_opt_rslts.csv'
+gifts_in = 'shoot_opt_v4_poisson_v2_sorted_opt.csv'
+gifts_save = 'shoot_opt_v4_poisson_v2_sorted_opt2.csv'
+gifts_out = 'shoot_opt_v4_poisson_v2_sorted_opt2_rslts.csv'
 trips_in = 'shoot_opt_v3_poisson_batch5_sorted_opt_trips.csv'
-trips_out = 'shoot_opt_v4_poisson_v2_sorted_opt_trips.csv'
+trips_out = 'shoot_opt_v4_poisson_v2_sorted_opt2_trips.csv'
 gifts = pd.DataFrame.from_csv(gifts_in)
-gifts = trips_optimize_v4(gifts, 9, 0, 1)
+# gifts = trips_optimize_v4(gifts, 9, 0, 1)
 trips = []
 
 with open(trips_in, 'rb') as csvfile:
@@ -742,32 +742,32 @@ for it in range(iterations):
 
     trips = remove_empty_trips(gifts, trips)
 
-    n_splits = 0
-    max_splits = 10
-    # Splitting
-    print 'spliting'
-    gifts_new = []
-    for i in range(0, len(trips)):
-        for gift_trip in trips[i]:
-            if np.sum(gifts[gifts['TripId'] == gift_trip]['Weight']):
-                cur_new_trip = new_trip
-                print 'trip %d optimization with weight %f' % \
-                      (gift_trip, np.sum(gifts[gifts['TripId'] == gift_trip]['Weight']))
-                if n_splits < max_splits:
-                    tmp_trip, new_trip, trips = split_trip(gifts[gifts['TripId'] == gift_trip], new_trip, trips)
-                else:
-                    tmp_trip = gifts[gifts['TripId'] == gift_trip]
-                if (new_trip - cur_new_trip) > 0:
-                    n_splits += 1
-                gifts_new.append(tmp_trip)
-    gifts = pd.concat(gifts_new)
-
-    print weighted_reindeer_weariness(gifts)
-
-    with open(trips_out, 'wb') as csvfile:
-        csvwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        for row in trips:
-            csvwriter.writerow(row)
+    # n_splits = 0
+    # max_splits = 10
+    # # Splitting
+    # print 'spliting'
+    # gifts_new = []
+    # for i in range(0, len(trips)):
+    #     for gift_trip in trips[i]:
+    #         if np.sum(gifts[gifts['TripId'] == gift_trip]['Weight']):
+    #             cur_new_trip = new_trip
+    #             print 'trip %d optimization with weight %f' % \
+    #                   (gift_trip, np.sum(gifts[gifts['TripId'] == gift_trip]['Weight']))
+    #             if n_splits < max_splits:
+    #                 tmp_trip, new_trip, trips = split_trip(gifts[gifts['TripId'] == gift_trip], new_trip, trips)
+    #             else:
+    #                 tmp_trip = gifts[gifts['TripId'] == gift_trip]
+    #             if (new_trip - cur_new_trip) > 0:
+    #                 n_splits += 1
+    #             gifts_new.append(tmp_trip)
+    # gifts = pd.concat(gifts_new)
+    #
+    # print weighted_reindeer_weariness(gifts)
+    #
+    # with open(trips_out, 'wb') as csvfile:
+    #     csvwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+    #     for row in trips:
+    #         csvwriter.writerow(row)
 
     # Combining
     new_trips = list(trips)
