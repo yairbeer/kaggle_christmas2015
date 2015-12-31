@@ -692,9 +692,10 @@ gifts = pd.read_csv('gifts.csv')
 print 'orginizing trips with %d weight limit' % 950
 gifts = trips_orginizer(gifts, 950)
 gifts.index = np.array(gifts.index) + 1
+print weighted_reindeer_weariness(gifts)
+
 print 'optimizing tracks'
 gifts = trips_optimize_v4(gifts, 6, 0, 1)
-
 print weighted_reindeer_weariness(gifts)
 
 gifts_save = 'mine_opt_v3.csv'
@@ -738,6 +739,8 @@ for it in range(iterations):
                         gifts = pd.concat([cur_trip_from_to, gifts])
 
     trips = remove_empty_trips(gifts, trips)
+    print weighted_reindeer_weariness(gifts)
+    gifts.to_csv(gifts_save)
 
     n_splits = 0
     max_splits = 10
