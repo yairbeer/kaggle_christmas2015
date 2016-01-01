@@ -6,35 +6,36 @@ import pandas as pd
 import numpy as np
 import itertools
 import csv
+from cHaversine import haversine
 
 AVG_EARTH_RADIUS = 6371  # in km
 
 
-def haversine(point1, point2, miles=False):
-    """ Calculate the great-circle distance bewteen two points on the Earth surface.
-    :input: two 2-tuples, containing the latitude and longitude of each point
-    in decimal degrees.
-    Example: haversine((45.7597, 4.8422), (48.8567, 2.3508))
-    :output: Returns the distance bewteen the two points.
-    The default unit is kilometers. Miles can be returned
-    if the ``miles`` parameter is set to True.
-    """
-    # unpack latitude/longitude
-    lat1, lng1 = point1
-    lat2, lng2 = point2
-
-    # convert all latitudes/longitudes from decimal degrees to radians
-    lat1, lng1, lat2, lng2 = map(radians, (lat1, lng1, lat2, lng2))
-
-    # calculate haversine
-    lat = lat2 - lat1
-    lng = lng2 - lng1
-    d = sin(lat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(lng / 2) ** 2
-    h = 2 * AVG_EARTH_RADIUS * asin(sqrt(d))
-    if miles:
-        return h * 0.621371  # in miles
-    else:
-        return h  # in kilometers
+# def haversine(point1, point2, miles=False):
+#     """ Calculate the great-circle distance bewteen two points on the Earth surface.
+#     :input: two 2-tuples, containing the latitude and longitude of each point
+#     in decimal degrees.
+#     Example: haversine((45.7597, 4.8422), (48.8567, 2.3508))
+#     :output: Returns the distance bewteen the two points.
+#     The default unit is kilometers. Miles can be returned
+#     if the ``miles`` parameter is set to True.
+#     """
+#     # unpack latitude/longitude
+#     lat1, lng1 = point1
+#     lat2, lng2 = point2
+#
+#     # convert all latitudes/longitudes from decimal degrees to radians
+#     lat1, lng1, lat2, lng2 = map(radians, (lat1, lng1, lat2, lng2))
+#
+#     # calculate haversine
+#     lat = lat2 - lat1
+#     lng = lng2 - lng1
+#     d = sin(lat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(lng / 2) ** 2
+#     h = 2 * AVG_EARTH_RADIUS * asin(sqrt(d))
+#     if miles:
+#         return h * 0.621371  # in miles
+#     else:
+#         return h  # in kilometers
 
 north_pole = (90, 0)
 weight_limit = 1000
@@ -197,8 +198,8 @@ def batch_optimize_dynamic(batch_gifts, batch_weights):
     for i in range(haver_mat.shape[0]):
         for j in range(haver_mat.shape[0]):
             if i != j:
-                haver_mat[i, j] = haversine(list(batch_gifts.loc[batch_index[i], ['Latitude', 'Longitude']]),
-                                            list(batch_gifts.loc[batch_index[j], ['Latitude', 'Longitude']]))
+                haver_mat[i, j] = haversine(tuple(batch_gifts.loc[batch_index[i], ['Latitude', 'Longitude']]),
+                                            tuple(batch_gifts.loc[batch_index[j], ['Latitude', 'Longitude']]))
 
     best_metric = weighted_sub_trip_length_dynamic(range(haver_mat.shape[0]), batch_gifts_weights, haver_mat)
     best_perm = range(haver_mat.shape[0])
@@ -691,13 +692,13 @@ Main program, require sorted trips
 # gifts = pd.read_csv('gifts.csv')
 # gifts = pd.merge(gifts_trip, gifts, on='GiftId')
 # gifts.index = np.array(gifts.index) + 1
-gifts_in = 'shoot_opt_v2_5_50_poisson4.csv'
+gifts_in = 'shoot_opt_v2_5_50_poisson4_opt2.csv'
 gifts_save = 'shoot_opt_v2_5_50_poisson4_opt2.csv'
 gifts_out = 'shoot_opt_v2_5_50_poisson4_opt2_rslts.csv'
-trips_in = 'shoot_opt_v2_5_50_poisson4_trips.csv'
+trips_in = 'shoot_opt_v2_5_50_poisson4_opt2_trips.csv'
 trips_out = 'shoot_opt_v2_5_50_poisson4_opt2_trips.csv'
 gifts = pd.DataFrame.from_csv(gifts_in)
-# gifts = trips_optimize_v4(gifts, 9, 0, 1)
+gifts = trips_optimize_v4(gifts, 9, 0, 1)
 trips = []
 
 with open(trips_in, 'rb') as csvfile:
@@ -790,8 +791,13 @@ for it in range(iterations):
                     gifts = gifts[gifts.TripId != trip_b]
                     gifts = pd.concat([cur_trip, gifts])
     trips = new_trips
+
     print weighted_reindeer_weariness(gifts)
     gifts.to_csv(gifts_save)
+    with open(trips_out, 'wb') as csvfile:
+        csvwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        for row in trips:
+            csvwriter.writerow(row)
 
     it_switch = 20
     for i_switch in range(it_switch):
@@ -817,12 +823,12 @@ for it in range(iterations):
                         gifts = pd.concat([cur_trip_from_to, gifts])
     print weighted_reindeer_weariness(gifts)
     gifts.to_csv(gifts_save)
-
     trips = remove_empty_trips(gifts, trips)
     with open(trips_out, 'wb') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row in trips:
             csvwriter.writerow(row)
+
 gifts.to_csv(gifts_save)
 
 gifts = pd.DataFrame.from_csv(gifts_save)
