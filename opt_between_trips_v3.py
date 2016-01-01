@@ -6,36 +6,36 @@ import pandas as pd
 import numpy as np
 import itertools
 import csv
-from cHaversine import haversine
+# from cHaversine import haversine
 
 AVG_EARTH_RADIUS = 6371  # in km
 
 
-# def haversine(point1, point2, miles=False):
-#     """ Calculate the great-circle distance bewteen two points on the Earth surface.
-#     :input: two 2-tuples, containing the latitude and longitude of each point
-#     in decimal degrees.
-#     Example: haversine((45.7597, 4.8422), (48.8567, 2.3508))
-#     :output: Returns the distance bewteen the two points.
-#     The default unit is kilometers. Miles can be returned
-#     if the ``miles`` parameter is set to True.
-#     """
-#     # unpack latitude/longitude
-#     lat1, lng1 = point1
-#     lat2, lng2 = point2
-#
-#     # convert all latitudes/longitudes from decimal degrees to radians
-#     lat1, lng1, lat2, lng2 = map(radians, (lat1, lng1, lat2, lng2))
-#
-#     # calculate haversine
-#     lat = lat2 - lat1
-#     lng = lng2 - lng1
-#     d = sin(lat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(lng / 2) ** 2
-#     h = 2 * AVG_EARTH_RADIUS * asin(sqrt(d))
-#     if miles:
-#         return h * 0.621371  # in miles
-#     else:
-#         return h  # in kilometers
+def haversine(point1, point2, miles=False):
+    """ Calculate the great-circle distance bewteen two points on the Earth surface.
+    :input: two 2-tuples, containing the latitude and longitude of each point
+    in decimal degrees.
+    Example: haversine((45.7597, 4.8422), (48.8567, 2.3508))
+    :output: Returns the distance bewteen the two points.
+    The default unit is kilometers. Miles can be returned
+    if the ``miles`` parameter is set to True.
+    """
+    # unpack latitude/longitude
+    lat1, lng1 = point1
+    lat2, lng2 = point2
+
+    # convert all latitudes/longitudes from decimal degrees to radians
+    lat1, lng1, lat2, lng2 = map(radians, (lat1, lng1, lat2, lng2))
+
+    # calculate haversine
+    lat = lat2 - lat1
+    lng = lng2 - lng1
+    d = sin(lat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(lng / 2) ** 2
+    h = 2 * AVG_EARTH_RADIUS * asin(sqrt(d))
+    if miles:
+        return h * 0.621371  # in miles
+    else:
+        return h  # in kilometers
 
 north_pole = (90, 0)
 weight_limit = 1000
@@ -635,14 +635,21 @@ def combine_trips(gifts_a, gifts_b, trips):
     total_weight = sum(list(gifts_a['Weight']) + list(gifts_b['Weight']))
     if total_weight < 990:
         print 'work on trips %d, %d' % (trip_a, trip_b)
-        combined_gifts = pd.concat([gifts_a, gifts_b])
-        combined_gifts = combined_gifts.sort_values('Latitude', ascending=False)
-        combined_gifts, combine_metric = single_trip_optimize(combined_gifts, 9,  0, 1)
-        if (metric_a + metric_b) > combine_metric:
-            print 'weariness gain: %f' % (combine_metric - (metric_a + metric_b))
-            combined_gifts['TripId'] = np.repeat(trip_a, combined_gifts.shape[0])
-            trips = remove_trip(trip_b, trips)
-            return combined_gifts, trips
+        combined_gifts_a = pd.concat([gifts_a, gifts_b])
+        combined_gifts_a, combine_metric_a = single_trip_optimize(combined_gifts_a, 9,  0, 1)
+        combined_gifts_b = pd.concat([gifts_b, gifts_a])
+        combined_gifts_b, combine_metric_b = single_trip_optimize(combined_gifts_b, 9,  0, 1)
+        if ((metric_a + metric_b) > combine_metric_a) or ((metric_a + metric_b) > combine_metric_b):
+            if combine_metric_a > combine_metric_b:
+                print 'weariness gain: %f' % (combine_metric_b - (metric_a + metric_b))
+                combined_gifts_b['TripId'] = np.repeat(trip_a, combined_gifts_b.shape[0])
+                trips = remove_trip(trip_b, trips)
+                return combined_gifts_b, trips
+            else:
+                print 'weariness gain: %f' % (combine_metric_a - (metric_a + metric_b))
+                combined_gifts_a['TripId'] = np.repeat(trip_a, combined_gifts_a.shape[0])
+                trips = remove_trip(trip_b, trips)
+                return combined_gifts_a, trips
     return pd.concat([gifts_a, gifts_b]), trips
 
 
