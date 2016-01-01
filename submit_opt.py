@@ -84,7 +84,7 @@ def weighted_sub_trip_length_dynamic(stops, weights, haversine_matrix):
 
 
 # # read files
-gifts = pd.DataFrame.from_csv('shoot_opt_v3_poisson_batch5_sorted_opt.csv')
+gifts = pd.DataFrame.from_csv('shoot_opt_v2_5_50_poisson4_opt2.csv')
 
 print weighted_reindeer_weariness(gifts)
 print 'writing results to file'
@@ -97,4 +97,4 @@ gift_trips.columns = ['GiftId', 'TripId']
 gift_trips = gift_trips.astype('int32')
 gift_trips.index = gift_trips["GiftId"]
 del gift_trips["GiftId"]
-gift_trips.to_csv('shoot_opt_v3_poisson_batch5_sorted_opt_rslts.csv')
+gift_trips.to_csv('shoot_opt_v2_5_50_poisson4_opt2_chk_rsts.csv')

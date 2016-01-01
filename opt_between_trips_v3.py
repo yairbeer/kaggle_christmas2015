@@ -178,8 +178,8 @@ def single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations):
     cur_trip = cur_trip.iloc[:-1]
     cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
     cur_improve = cur_trip_init_goal - cur_trip_final_goal
-    if cur_improve:
-        print 'iteration improve:', cur_improve
+    # if cur_improve:
+    #     print 'iteration improve:', cur_improve
     return cur_trip, cur_trip_final_goal
 
 
@@ -699,7 +699,7 @@ gifts_out = 'shoot_opt_v2_5_50_poisson4_opt2_rslts.csv'
 trips_in = 'shoot_opt_v2_5_50_poisson4_opt2_trips.csv'
 trips_out = 'shoot_opt_v2_5_50_poisson4_opt2_trips.csv'
 gifts = pd.DataFrame.from_csv(gifts_in)
-gifts = trips_optimize_v4(gifts, 9, 0, 1)
+# gifts = trips_optimize_v4(gifts, 9, 0, 1)
 trips = []
 
 with open(trips_in, 'rb') as csvfile:
@@ -800,7 +800,7 @@ for it in range(iterations):
         for row in trips:
             csvwriter.writerow(row)
 
-    it_switch = 20
+    it_switch = 10
     for i_switch in range(it_switch):
         print 'Iteration %d' % i_switch
         # print gift_trips
@@ -818,7 +818,7 @@ for it in range(iterations):
                     if cur_trip_from.shape[0] and cur_trip_to.shape[0]:
                         cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=25,
                                                                    poisson_items=(((it_switch - i_switch) *
-                                                                                  1.0 / 5) + 1))
+                                                                                  1.0 / 5) + 0.5))
                         gifts = gifts[gifts.TripId != gift_to]
                         gifts = gifts[gifts.TripId != gift_from]
                         gifts = pd.concat([cur_trip_from_to, gifts])
