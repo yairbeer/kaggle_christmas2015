@@ -178,7 +178,8 @@ def single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations):
     cur_trip = cur_trip.iloc[:-1]
     cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
     cur_improve = cur_trip_init_goal - cur_trip_final_goal
-    # print 'iteration improve:', cur_improve
+    if cur_improve:
+        print 'iteration improve:', cur_improve
     return cur_trip, cur_trip_final_goal
 
 
