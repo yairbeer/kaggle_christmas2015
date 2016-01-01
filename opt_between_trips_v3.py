@@ -635,21 +635,14 @@ def combine_trips(gifts_a, gifts_b, trips):
     total_weight = sum(list(gifts_a['Weight']) + list(gifts_b['Weight']))
     if total_weight < 990:
         print 'work on trips %d, %d' % (trip_a, trip_b)
-        combined_gifts_a = pd.concat([gifts_a, gifts_b])
-        combined_gifts_a, combine_metric_a = single_trip_optimize(combined_gifts_a, 9,  0, 1)
-        combined_gifts_b = pd.concat([gifts_b, gifts_a])
-        combined_gifts_b, combine_metric_b = single_trip_optimize(combined_gifts_b, 9,  0, 1)
-        if ((metric_a + metric_b) > combine_metric_a) or ((metric_a + metric_b) > combine_metric_b):
-            if combine_metric_a > combine_metric_b:
-                print 'weariness gain: %f' % (combine_metric_b - (metric_a + metric_b))
-                combined_gifts_b['TripId'] = np.repeat(trip_a, combined_gifts_b.shape[0])
-                trips = remove_trip(trip_b, trips)
-                return combined_gifts_b, trips
-            else:
-                print 'weariness gain: %f' % (combine_metric_a - (metric_a + metric_b))
-                combined_gifts_a['TripId'] = np.repeat(trip_a, combined_gifts_a.shape[0])
-                trips = remove_trip(trip_b, trips)
-                return combined_gifts_a, trips
+        combined_gifts = pd.concat([gifts_a, gifts_b])
+        combined_gifts = combined_gifts.sort_values('Latitude', ascending=False)
+        combined_gifts, combine_metric = single_trip_optimize(combined_gifts, 9,  0, 1)
+        if (metric_a + metric_b) > combine_metric:
+            print 'weariness gain: %f' % (combine_metric - (metric_a + metric_b))
+            combined_gifts['TripId'] = np.repeat(trip_a, combined_gifts.shape[0])
+            trips = remove_trip(trip_b, trips)
+            return combined_gifts, trips
     return pd.concat([gifts_a, gifts_b]), trips
 
 
@@ -729,7 +722,7 @@ new_trip += 1
 iterations = 30
 for it in range(iterations):
     n_splits = 0
-    max_splits = 10
+    max_splits = 30
     # Splitting
     print 'spliting'
     gifts_new = []
@@ -807,7 +800,7 @@ for it in range(iterations):
         for row in trips:
             csvwriter.writerow(row)
 
-    it_switch = 10
+    it_switch = 3
     for i_switch in range(it_switch):
         print 'Iteration %d' % i_switch
         # print gift_trips
@@ -825,7 +818,7 @@ for it in range(iterations):
                     if cur_trip_from.shape[0] and cur_trip_to.shape[0]:
                         cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=25,
                                                                    poisson_items=(((it_switch - i_switch) *
-                                                                                  1.0 / 5) + 0.5))
+                                                                                  1.0) + 0.5))
                         gifts = gifts[gifts.TripId != gift_to]
                         gifts = gifts[gifts.TripId != gift_from]
                         gifts = pd.concat([cur_trip_from_to, gifts])

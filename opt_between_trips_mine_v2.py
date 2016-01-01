@@ -1,11 +1,11 @@
 """move excess gifts into south
 """
-
 from math import radians, cos, sin, asin, sqrt
 import pandas as pd
 import numpy as np
 import itertools
 import csv
+# from cHaversine import haversine
 
 AVG_EARTH_RADIUS = 6371  # in km
 
@@ -177,7 +177,8 @@ def single_trip_optimize(cur_trip, batch_size, k_changes, changes_iterations):
     cur_trip = cur_trip.iloc[:-1]
     cur_trip_final_goal = weighted_trip_length(cur_trip[['Latitude', 'Longitude']], list(cur_trip['Weight']))
     cur_improve = cur_trip_init_goal - cur_trip_final_goal
-    print 'iteration improve:', cur_improve
+    # if cur_improve:
+    #     print 'iteration improve:', cur_improve
     return cur_trip, cur_trip_final_goal
 
 
@@ -197,8 +198,8 @@ def batch_optimize_dynamic(batch_gifts, batch_weights):
     for i in range(haver_mat.shape[0]):
         for j in range(haver_mat.shape[0]):
             if i != j:
-                haver_mat[i, j] = haversine(list(batch_gifts.loc[batch_index[i], ['Latitude', 'Longitude']]),
-                                            list(batch_gifts.loc[batch_index[j], ['Latitude', 'Longitude']]))
+                haver_mat[i, j] = haversine(tuple(batch_gifts.loc[batch_index[i], ['Latitude', 'Longitude']]),
+                                            tuple(batch_gifts.loc[batch_index[j], ['Latitude', 'Longitude']]))
 
     best_metric = weighted_sub_trip_length_dynamic(range(haver_mat.shape[0]), batch_gifts_weights, haver_mat)
     best_perm = range(haver_mat.shape[0])
@@ -360,7 +361,7 @@ def fill_trip(gifts, cur_weight, cur_trip, cur_gift, long_limit, weight_limit):
     cur_long = cur_gift['Longitude']
     relevant_gifts = gifts[gifts['Longitude'] < (cur_long + long_limit)]
     relevant_gifts = relevant_gifts[gifts['TripId'] < 0]
-    relevant_gifts = relevant_gifts.sort_valus('Longitude', ascending=True)
+    relevant_gifts = relevant_gifts.sort_values('Longitude', ascending=True)
     relevant_gifts_index = list(relevant_gifts.index)
     for cur_index in relevant_gifts_index:
         # add current weight
@@ -633,7 +634,7 @@ def combine_trips(gifts_a, gifts_b, trips):
                                     list(gifts_b['Weight']))
     total_weight = sum(list(gifts_a['Weight']) + list(gifts_b['Weight']))
     if total_weight < 990:
-        print 'work on trips %d, %d' % (trip_a, trip_a)
+        print 'work on trips %d, %d' % (trip_a, trip_b)
         combined_gifts = pd.concat([gifts_a, gifts_b])
         combined_gifts = combined_gifts.sort_values('Latitude', ascending=False)
         combined_gifts, combine_metric = single_trip_optimize(combined_gifts, 9,  0, 1)
@@ -683,7 +684,6 @@ def remove_empty_trips(gifts, trips):
                 print 'removed trip %d' % trip_id
                 break
     return trips
-
 """
 Main program, require sorted trips
 """
@@ -694,28 +694,48 @@ gifts = trips_orginizer(gifts, 950)
 gifts.index = np.array(gifts.index) + 1
 print weighted_reindeer_weariness(gifts)
 
-print 'optimizing tracks'
-gifts = trips_optimize_v4(gifts, 6, 0, 1)
-print weighted_reindeer_weariness(gifts)
-
-gifts_save = 'mine_opt_v3.csv'
-gifts_out = 'mine_opt_v3_rslts.csv'
-trips_out = 'mine_opt_v3_trips.csv'
-
-gifts.to_csv(gifts_save)
-
 trips = gifts['TripId'].unique()
 trips = list(np.sort(trips))
 new_trip = trips[-1] + 1
 print 'number of trips is: ', len(trips)
 trips = map(lambda x: [x], trips)
 
+gifts_save = 'mine_opt_v3.csv'
+gifts_out = 'mine_opt_v3_rslts.csv'
+trips_out = 'mine_opt_v3_trips.csv'
 
-trips = remove_empty_trips(gifts, trips)
+it_switch = 15
+for i_switch in range(it_switch):
+    print 'Iteration %d' % i_switch
+    # print gift_trips
+    for i in range(0, len(trips)):
+        # single iteration per trip
+        # Working from the start
+        if not (i % 100):
+            print 'trip %d optimization' % i
+            print weighted_reindeer_weariness(gifts)
+            gifts.to_csv(gifts_save)
+        for gift_from in trips[i - 1]:
+            for gift_to in trips[i]:
+                cur_trip_from = gifts[gifts['TripId'] == gift_from]
+                cur_trip_to = gifts[gifts['TripId'] == gift_to]
+                if cur_trip_from.shape[0] and cur_trip_to.shape[0]:
+                    cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=25,
+                                                               poisson_items=(((it_switch - i_switch) *
+                                                                              0.3) + 0.5))
+                    gifts = gifts[gifts.TripId != gift_to]
+                    gifts = gifts[gifts.TripId != gift_from]
+                    gifts = pd.concat([cur_trip_from_to, gifts])
 
-iterations = 10
+print 'optimizing tracks'
+# gifts = trips_optimize_v4(gifts, 9, 0, 1)
+print weighted_reindeer_weariness(gifts)
+gifts.to_csv(gifts_save)
+
+iterations = 30
 for it in range(iterations):
-    it_switch = 20
+
+    it_switch = 5
     for i_switch in range(it_switch):
         print 'Iteration %d' % i_switch
         # print gift_trips
@@ -731,19 +751,22 @@ for it in range(iterations):
                     cur_trip_from = gifts[gifts['TripId'] == gift_from]
                     cur_trip_to = gifts[gifts['TripId'] == gift_to]
                     if cur_trip_from.shape[0] and cur_trip_to.shape[0]:
-                        cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=30,
+                        cur_trip_from_to = gift_switch_optimize_v2(cur_trip_from, cur_trip_to, n_tries=25,
                                                                    poisson_items=(((it_switch - i_switch) *
-                                                                                  1.0 / 5) + 1))
+                                                                                  1.0) + 0.5))
                         gifts = gifts[gifts.TripId != gift_to]
                         gifts = gifts[gifts.TripId != gift_from]
                         gifts = pd.concat([cur_trip_from_to, gifts])
-
-    trips = remove_empty_trips(gifts, trips)
     print weighted_reindeer_weariness(gifts)
     gifts.to_csv(gifts_save)
+    trips = remove_empty_trips(gifts, trips)
+    with open(trips_out, 'wb') as csvfile:
+        csvwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        for row in trips:
+            csvwriter.writerow(row)
 
     n_splits = 0
-    max_splits = 10
+    max_splits = 999
     # Splitting
     print 'spliting'
     gifts_new = []
@@ -763,7 +786,7 @@ for it in range(iterations):
     gifts = pd.concat(gifts_new)
 
     print weighted_reindeer_weariness(gifts)
-
+    gifts.to_csv(gifts_save)
     with open(trips_out, 'wb') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row in trips:
@@ -789,7 +812,7 @@ for it in range(iterations):
                     gifts = pd.concat([cur_trip, gifts])
     trips = new_trips
     print weighted_reindeer_weariness(gifts)
-
+    gifts.to_csv(gifts_save)
     with open(trips_out, 'wb') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
         for row in trips:
@@ -813,9 +836,29 @@ for it in range(iterations):
                     gifts = gifts[gifts.TripId != trip_b]
                     gifts = pd.concat([cur_trip, gifts])
     trips = new_trips
+
     print weighted_reindeer_weariness(gifts)
     gifts.to_csv(gifts_save)
+    with open(trips_out, 'wb') as csvfile:
+        csvwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        for row in trips:
+            csvwriter.writerow(row)
+
 gifts.to_csv(gifts_save)
+
+gifts = pd.DataFrame.from_csv(gifts_save)
+
+print 'writing results to file'
+gift_trips = np.array(gifts)
+gift_trips = gift_trips[:, [0, 3]]
+gift_trips = pd.DataFrame(gift_trips)
+gift_trips.columns = ['GiftId', 'TripId']
+
+gift_trips = gift_trips.astype('int32')
+gift_trips.index = gift_trips["GiftId"]
+del gift_trips["GiftId"]
+gift_trips.to_csv(gifts_out)
+
 
 gifts = pd.DataFrame.from_csv(gifts_save)
 
