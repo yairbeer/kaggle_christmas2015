@@ -688,21 +688,37 @@ def remove_empty_trips(gifts, trips):
 Main program, require sorted trips
 """
 # read files
-gifts = pd.read_csv('gifts.csv')
-print 'orginizing trips with %d weight limit' % 950
-gifts = trips_orginizer(gifts, 950)
-gifts.index = np.array(gifts.index) + 1
-print weighted_reindeer_weariness(gifts)
+# gifts = pd.read_csv('gifts.csv')
+# print 'orginizing trips with %d weight limit' % 950
+# gifts = trips_orginizer(gifts, 950)
+# gifts.index = np.array(gifts.index) + 1
+# print weighted_reindeer_weariness(gifts)
 
-trips = gifts['TripId'].unique()
-trips = list(np.sort(trips))
-new_trip = trips[-1] + 1
-print 'number of trips is: ', len(trips)
-trips = map(lambda x: [x], trips)
+# trips = gifts['TripId'].unique()
+# trips = list(np.sort(trips))
+# new_trip = trips[-1] + 1
+# print 'number of trips is: ', len(trips)
+# trips = map(lambda x: [x], trips)
 
 gifts_save = 'mine_opt_v3.csv'
 gifts_out = 'mine_opt_v3_rslts.csv'
 trips_out = 'mine_opt_v3_trips.csv'
+
+gifts_in = 'mine_opt_v3.csv'
+gifts = pd.DataFrame.from_csv(gifts_in)
+
+trips_in = 'mine_opt_v3_trips.csv'
+trips = []
+with open(trips_in, 'rb') as csvfile:
+    csvreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    for row in csvreader:
+        row = map(lambda x: int(x), row)
+        trips.append(row)
+csvfile.close()
+
+gifts = trips_optimize_v4(gifts, 9, 0, 1)
+print weighted_reindeer_weariness(gifts)
+gifts.to_csv(gifts_save)
 
 it_switch = 15
 for i_switch in range(it_switch):
@@ -728,7 +744,7 @@ for i_switch in range(it_switch):
                     gifts = pd.concat([cur_trip_from_to, gifts])
 
 print 'optimizing tracks'
-# gifts = trips_optimize_v4(gifts, 9, 0, 1)
+gifts = trips_optimize_v4(gifts, 9, 0, 1)
 print weighted_reindeer_weariness(gifts)
 gifts.to_csv(gifts_save)
 

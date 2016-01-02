@@ -685,6 +685,67 @@ def remove_empty_trips(gifts, trips):
                 break
     return trips
 
+
+def remove_nonempty_trips(gifts, trips, trip_removed, n_neigh):
+    """
+    Remove trip if it is better, makes combine trip obsolete
+    """
+    # Find trip
+    for i in range(len(trips)):
+        for j in range(len(trips[i])):
+            if trips[i][j] == trip_removed:
+                trip_i = i
+                cur_gifts = gifts[gifts['TripId'] == trips[i][j]]
+
+    # Find relevant trips
+    relevant_trips = trips[(trip_i - n_neigh): (trip_i + n_neigh + 1)]
+
+    # Calculate number of trips and total weight, reference metric score
+    n_trips_self_neighbors = 0
+    total_weight_self_neighbors = 0
+    base_metric = 0
+    for i in range(len(relevant_trips)):
+        # Neighbours
+        if i != n_neigh:
+            for j in range(len(relevant_trips[i])):
+                n_trips_self_neighbors += 1
+                total_weight_self_neighbors += sum(list(gifts[gifts['TripId'] == relevant_trips[i][j]]['Weight']))
+                base_metric += single_trip_optimize(gifts[gifts['TripId'] == relevant_trips[i][j]], 5, 0, 1)[1]
+
+    # Self
+    total_weight_self_neighbors += sum(list(cur_gifts['Weight']))
+    base_metric += single_trip_optimize(cur_gifts, 5, 0, 1)[1]
+
+    # Find if it is possible to remove the trip
+    if (total_weight_self_neighbors / (n_trips_self_neighbors)) > 900:
+        print 'Unable to remove trip %d, because it is too heavy' % trip_removed
+        return gifts, trips
+
+    # Redistribute gifts
+    print 'Redistribute presents for trip %d' % trip_removed
+    # Sort by Lat for easier distribution
+    cur_gifts = cur_gifts.sort_values('Latitude', ascending=False)
+    cur_gift_index = 0
+    next_gift = cur_gifts.iloc[cur_gift_index]
+    next_gift_lat = cur_gifts['Latitude'].iloc[cur_gift_index]
+    for i in range(n_neigh):
+        for j in range(relevant_trips[n_neigh + i]):
+            dist_gifts = gifts[gifts['TripId'] == relevant_trips[i][j]]
+            base_weight_j = sum(list(dist_gifts['Weight']))
+            dist_index = 1
+            while (base_weight_j <= 990) and (cur_gift_index < cur_gifts.shape[0]):
+                # Put the next present before the present with the latitude lower than the current gift
+                if next_gift_lat > float(dist_gifts['Latitude'].iloc[0]):
+
+                else:
+                    dist_gifts_lat = dist_gifts['Latitude'].iloc[dist_index]
+    # Optimize
+
+    # Calculate new weariness
+
+    # create new gifts and trips
+    return gifts, trips
+
 """
 Main program, require sorted trips
 """
